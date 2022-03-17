@@ -1,0 +1,28 @@
+{
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "module": "CommonJS",
+    "target": "ES6",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "sourceMap": false,
+    "outDir": "dist",
+    "noImplicitAny": false,
+    "baseUrl": ".",
+    "allowJs": true,
+    "outDir": "./dist",
+    "paths": {
+      "*": [
+        "node_modules/*",
+        "./types/*"
+      ],
+      "@/*": ["*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.js"],
+  "exclude": ["**/__tests__/*", "**/*/config.ts", "**/node_modules/*", "dist"],
+}

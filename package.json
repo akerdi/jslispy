@@ -1,0 +1,20 @@
+{
+  "name": "jslispy",
+  "version": "0.0.1",
+  "main": "main.ts",
+  "author": "aker <tianxiaoxin001@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'TS_NODE_FILES=true TS_NODE_TRANSPILE_ONLY=true ts-node --files -r tsconfig-paths/register' main.ts",
+    "dev:win": "cross-env nodemon --watch '**/*.ts' --ignore '**/*.test.ts' --exec 'ts-node --files -r tsconfig-paths/register' main.ts",
+    "start": "node main.js",
+    "build": "gulp"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.21",
+    "nodemon": "2.0.12",
+    "ts-node": "8.6.2",
+    "tsconfig-paths": "3.10.1",
+    "typescript": "4.3.5"
+  }
+}
