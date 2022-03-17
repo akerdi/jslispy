@@ -16,3 +16,31 @@ Typescript
 ## 运行
 
     yarn build && node dist/main.js
+
+## 目标
+
+- [ ] Library
+- [ ] String/FILE
+- [ ] ORD/COMPARE/IF
+- [ ] Function
+- [ ] Env
+- [ ] Q-Express
+- [ ] S-Express
+- [ ] AST
+- [ ] REPL
+- [x] init
+
+## Usage
+
+    > + 3 2
+    > + (* 30 20) (eval { tail { 10 - 20 10  } })
+
+## Recommend Platform
+
+IDE: vscode
+Node: 10.20.0
+Platform: darwin
+
+## History
+
+20220317 init
