@@ -25,9 +25,9 @@ Typescript
 - [ ] Function
 - [ ] Env
 - [ ] Q-Express
-- [ ] S-Express
-- [ ] AST
-- [ ] REPL
+- [x] S-Express
+- [x] AST
+- [x] REPL
 - [x] init
 
 ## Usage
