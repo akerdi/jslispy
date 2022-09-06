@@ -21,7 +21,7 @@ Typescript
 
 - [ ] Library
 - [ ] String/FILE
-- [ ] ORD/COMPARE/IF
+- [ ] ORDER/COMPARE/IF
 - [ ] Function
 - [ ] Env
 - [x] Q-Express
@@ -30,7 +30,7 @@ Typescript
 - [x] REPL
 - [x] init
 
-## Bug
+## 已知遗留Bug
 
 - [ ] lval_del 删除置空对象，没有效果
 
