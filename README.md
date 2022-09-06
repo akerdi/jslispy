@@ -24,11 +24,17 @@ Typescript
 - [ ] ORD/COMPARE/IF
 - [ ] Function
 - [ ] Env
-- [ ] Q-Express
+- [x] Q-Express
 - [x] S-Express
 - [x] AST
 - [x] REPL
 - [x] init
+
+## Bug
+
+- [ ] lval_del 删除置空对象，没有效果
+
+解决方式为: 将数据对象放到容器对象，传输过程可以删除该数据对象，最后再删除容器对象的方式来实现置空
 
 ## Usage
 
@@ -43,4 +49,5 @@ Platform: darwin
 
 ## History
 
-20220317 init
+- 20220906 qexpr
+- 20220317 init
