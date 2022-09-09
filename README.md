@@ -1,6 +1,6 @@
 # jslispy
 
-使用js 覆写[clispy](https://github.com/shaohung001/buildyourownlisp)
+使用 js 覆写[clispy](https://github.com/akerdi/buildyourownlisp)
 
 ## Language
 
@@ -9,6 +9,7 @@ Typescript
 ## 开发
 
     cp .vscode/launch.example.json .vscode/launch.json // 然后按键盘 F5
+
 或者
 
     yarn dev
@@ -30,7 +31,7 @@ Typescript
 - [x] REPL
 - [x] init
 
-## 已知遗留Bug
+## 已知遗留 Bug
 
 - [ ] lval_del 删除置空对象，没有效果
 
@@ -39,7 +40,9 @@ Typescript
 ## Usage
 
     > + 3 2
-    > + (* 30 20) (eval { tail { 10 - 20 10  } })
+    > + (* 30 20) (eval (eval { tail { 10 - 20 10  } })) // + (* 30 20) (eval (tail { 10 - 20 10  }) )
+
+eval { tail { 10 - 20 10 } }
 
 ## Recommend Platform
 
@@ -52,4 +55,4 @@ Platform: darwin
 - 20220906 qexpr
 - 20220317 init
 
-## [jslispy教程](alert("暂未实现, 即将开工, 敬请期待"))
+## [jslispy 教程](alert("暂未实现, 即将开工, 敬请期待"))
