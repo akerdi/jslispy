@@ -1,6 +1,17 @@
 import util from "util";
 
 const compiler = require("./compiler/compiler");
+interface INode {
+  type:
+    | ">" // program
+    | "symbol"
+    | "number"
+    | "string"
+    | "semi" // 保存 `(`, `)`
+    | "quote"; // 保存 `{`, `}`
+  content?: string; // 保存实际数据
+  children?: INode[]; // 保存下层数据
+}
 
 function stdoutWrite(prompt: string) {
   process.stdout.write(prompt);
@@ -12,14 +23,50 @@ enum LVAL {
   SYM,
   SEXPR,
   QEXPR,
+  FUNC,
 }
 
+class lenv {
+  syms: string[];
+  vals: lval[];
+}
+
+function newLenv() {
+  const env = new lenv();
+  env.syms = [];
+  env.vals = [];
+  return env;
+}
+function lenv_get(env: lenv, key: lval) {
+  let i;
+  for (i = 0; i < env.syms.length; i++) {
+    const sym = env.syms[i];
+    if (sym === key.sym) {
+      return lval_copy(env.vals[i]);
+    }
+  }
+  return lval_err("Unbound Symbol: %s", [key.sym]);
+}
+function lenv_put(env: lenv, key: lval, val: lval) {
+  for (let i = 0; i < env.syms.length; i++) {
+    // 存在即更新
+    if (env.syms[i] === key.sym) {
+      env.vals[i] = lval_copy(val);
+      return;
+    }
+  }
+  // 不存在即增加
+  env.syms.push(key.sym);
+  env.vals.push(lval_copy(val));
+}
+type lbuildinFunc = (env: lenv, val: lval) => lval;
 class lval {
   type: LVAL;
 
   num: number;
   err: string;
   sym: string;
+  func: lbuildinFunc;
 
   cells: lval[];
 }
@@ -39,6 +86,12 @@ function lval_sym(sym: string) {
   const _lval = new lval();
   _lval.type = LVAL.SYM;
   _lval.sym = sym;
+  return _lval;
+}
+function lval_func(func: lbuildinFunc) {
+  const _lval = new lval();
+  _lval.type = LVAL.FUNC;
+  _lval.func = func;
   return _lval;
 }
 function lval_sexpr() {
@@ -75,7 +128,6 @@ function lval_del(x: lval) {
       lval_expr_del(x);
       break;
   }
-  x = null;
 }
 
 function lval_add(x: lval, a: lval) {
@@ -90,10 +142,39 @@ function lval_take(x: lval, index: number) {
   x = null;
   return a;
 }
+function lval_copy(x: lval) {
+  const _lval = new lval();
+  _lval.type = x.type;
+  switch (_lval.type) {
+    case LVAL.ERR:
+      _lval.err = x.err;
+      break;
+    case LVAL.NUM:
+      _lval.num = x.num;
+      break;
+    case LVAL.SYM:
+      _lval.sym = x.sym;
+      break;
+    case LVAL.FUNC:
+      _lval.func = x.func;
+      break;
+    case LVAL.SEXPR:
+    case LVAL.QEXPR:
+      _lval.cells = [];
+      for (const a of x.cells) {
+        _lval.cells.push(lval_copy(a));
+      }
+      break;
+  }
+  return _lval;
+}
 function build_op(v: lval, sym: string) {
   for (let i = 0; i < v.cells.length; i++) {
     if (v.cells[i].type !== LVAL.NUM) {
-      return lval_err("operation on non-number!");
+      return lval_err("operation on non-number! Expect %s, Got %s", [
+        ltype_name(LVAL.NUM),
+        ltype_name(v.cells[i].type),
+      ]);
     }
   }
   let x = lval_pop(v, 0);
@@ -176,7 +257,7 @@ function lassert_not_empty(func: string, v: lval, index: number) {
   );
 }
 
-function buildin_head(v: lval) {
+function buildin_head(env: lenv, v: lval) {
   lassert_num("head", v, 1);
   lassert_type("head", v, 0, LVAL.QEXPR);
   lassert_not_empty("head", v, 0);
@@ -188,7 +269,7 @@ function buildin_head(v: lval) {
   }
   return x;
 }
-function buildin_tail(v: lval) {
+function buildin_tail(env: lenv, v: lval) {
   lassert_num("head", v, 1);
   lassert_type("head", v, 0, LVAL.QEXPR);
   lassert_not_empty("head", v, 0);
@@ -197,11 +278,11 @@ function buildin_tail(v: lval) {
   lval_del(lval_pop(x, 0));
   return x;
 }
-function buildin_list(v: lval) {
+function buildin_list(env: lenv, v: lval) {
   v.type = LVAL.QEXPR;
   return v;
 }
-function buildin_join(v: lval) {
+function buildin_join(env: lenv, v: lval) {
   lassert_num("join", v, 2);
   lassert_type("join", v, 0, LVAL.QEXPR);
   lassert_type("join", v, 1, LVAL.QEXPR);
@@ -218,28 +299,35 @@ function buildin_join(v: lval) {
   lval_del(v);
   return x;
 }
-function buildin_eval(v: lval) {
+function buildin_add(env: lenv, v: lval) {
+  return build_op(v, "+");
+}
+function buildin_sub(env: lenv, v: lval) {
+  return build_op(v, "-");
+}
+function buildin_mul(env: lenv, v: lval) {
+  return build_op(v, "*");
+}
+function buildin_div(env: lenv, v: lval) {
+  return build_op(v, "/");
+}
+
+function buildin_eval(env: lenv, v: lval) {
   lassert_num("eval", v, 1);
   lassert_type("eval", v, 0, LVAL.QEXPR);
   lassert_not_empty("eval", v, 0);
   const x = lval_take(v, 0);
   x.type = LVAL.SEXPR;
-  return lval_eval(x);
+  return lval_eval(env, x);
+}
+function buildin_def(env: lenv, v: lval) {
+  return null;
 }
 
-function buildin(v: lval, sym: string) {
-  if (sym === "head") return buildin_head(v);
-  if (sym === "tail") return buildin_tail(v);
-  if (sym === "list") return buildin_list(v);
-  if (sym === "join") return buildin_join(v);
-  if (sym === "eval") return buildin_eval(v);
-  if (["+", "-", "*", "/"].includes(sym)) return build_op(v, sym);
-  return lval_err("Unknown symbol: " + sym);
-}
-function lval_expr_eval(v: lval) {
+function lval_expr_eval(env: lenv, v: lval) {
   let i;
   for (i = 0; i < v.cells.length; i++) {
-    v.cells[i] = lval_eval(v.cells[i]);
+    v.cells[i] = lval_eval(env, v.cells[i]);
   }
   for (i = 0; i < v.cells.length; i++) {
     if (v.cells[i].type === LVAL.ERR) {
@@ -249,24 +337,32 @@ function lval_expr_eval(v: lval) {
   if (!v.cells.length) return v;
   if (v.cells.length == 1) return lval_take(v, 0);
   const op = lval_pop(v, 0);
-  if (op.type != LVAL.SYM) {
-    return lval_err("sexpr must start with symbol!");
+  if (op.type != LVAL.FUNC) {
+    return lval_err("Sexpr must start with function type! Expect %s, Got %s", [
+      ltype_name(LVAL.FUNC),
+      ltype_name(op.type),
+    ]);
   }
 
   // const res = build_op(v, op.sym);
-  const res = buildin(v, op.sym);
+  // const res = buildin(v, op.sym);
+  const res = op.func(env, v);
 
   lval_del(op);
 
   return res;
 }
-function lval_eval(v: lval) {
-  if (v.type === LVAL.SEXPR) return lval_expr_eval(v);
+function lval_eval(env: lenv, v: lval) {
+  if (v.type == LVAL.SYM) {
+    const val = lenv_get(env, v);
+    return val;
+  }
+  if (v.type === LVAL.SEXPR) return lval_expr_eval(env, v);
   return v;
 }
 
 function lval_expr_read(ast) {
-  let x;
+  let x: lval;
   if (ast.type === ">") x = lval_sexpr();
   else if (ast.type === "sexpr") x = lval_sexpr();
   else if (ast.type === "qexpr") x = lval_qexpr();
@@ -287,6 +383,62 @@ function lval_read(ast) {
 
   return lval_expr_read(ast);
 }
+
+function buildin_env(env: lenv, key: string, func: lbuildinFunc) {
+  let symVal = lval_sym(key);
+  let funcVal = lval_func(func);
+  lenv_put(env, symVal, funcVal);
+  symVal = null;
+  funcVal = null;
+}
+
+function buildin_envs(env: lenv) {
+  buildin_env(env, "head", buildin_head);
+  buildin_env(env, "tail", buildin_tail);
+  buildin_env(env, "eval", buildin_eval);
+  buildin_env(env, "list", buildin_list);
+  buildin_env(env, "join", buildin_join);
+  buildin_env(env, "+", buildin_add);
+  buildin_env(env, "-", buildin_sub);
+  buildin_env(env, "*", buildin_mul);
+  buildin_env(env, "/", buildin_div);
+  buildin_env(env, "def", buildin_def);
+}
+
+function main() {
+  process.stdin.setEncoding("utf8");
+  stdoutWrite("> ");
+
+  process.stdin.on("data", (chunk: any) => {
+    const result = chunk.replace(/[\r\n]/g, "");
+    if (!!result) {
+      try {
+        const ast: INode = compiler.compiler(result);
+        // 开始lval_read
+        const expr = lval_read(ast);
+        // 开始lval_eval
+        const res = lval_eval(env, expr);
+        // 打印expr
+        lval_println(res);
+        lval_del(res);
+      } catch (error) {
+        if (error.constructor.name === "lval") {
+          lval_println(error);
+        } else {
+          console.error(error);
+        }
+      }
+      stdoutWrite("> ");
+    }
+  });
+}
+
+main();
+let env = newLenv();
+buildin_envs(env);
+process.on("exit", (num) => {
+  env = null;
+});
 
 function lval_expr_print(a: lval, open: string, close: string) {
   stdoutWrite(open);
@@ -316,32 +468,3 @@ function lval_println(a: lval) {
   lval_print(a);
   stdoutWrite("\n");
 }
-
-function main() {
-  process.stdin.setEncoding("utf8");
-  stdoutWrite("> ");
-  process.stdin.on("data", (chunk: any) => {
-    const result = chunk.replace(/[\r\n]/g, "");
-    if (!!result) {
-      try {
-        const ast = compiler.compiler(result);
-        // 开始lval_read
-        const expr = lval_read(ast);
-        // 开始lval_eval
-        const res = lval_eval(expr);
-        // 打印expr
-        lval_println(res);
-        lval_del(res);
-      } catch (error) {
-        if (error.constructor.name === "lval") {
-          lval_println(error);
-        } else {
-          console.error(error);
-        }
-      }
-      stdoutWrite("> ");
-    }
-  });
-}
-
-main();
