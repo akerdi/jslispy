@@ -321,7 +321,14 @@ function buildin_eval(env: lenv, v: lval) {
   return lval_eval(env, x);
 }
 function buildin_def(env: lenv, v: lval) {
-  return null;
+  lassert_type("def", v, 0, LVAL.QEXPR);
+  const node = v.cells[0];
+  lassert(v, node.cells.length === v.cells.length-1, "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d", "def", node.cells.length, v.cells.length -1);
+  for (let i = 0; i < node.cells.length; i++) {
+    lenv_put(env, node.cells[i], v.cells[i+1]);
+  }
+  lval_del(v);
+  return lval_sexpr();
 }
 
 function lval_expr_eval(env: lenv, v: lval) {
