@@ -24,18 +24,12 @@ Typescript
 - [ ] String/FILE
 - [ ] ORDER/COMPARE/IF
 - [ ] Function
-- [ ] Env
+- [x] Env
 - [x] Q-Express
 - [x] S-Express
 - [x] AST
 - [x] REPL
 - [x] init
-
-## 已知遗留 Bug
-
-- [ ] lval_del 删除置空对象，没有效果
-
-解决方式为: 将数据对象放到容器对象，传输过程可以删除该数据对象，最后再删除容器对象的方式来实现置空
 
 ## Usage
 
