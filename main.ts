@@ -27,12 +27,14 @@ enum LVAL {
 }
 
 class lenv {
+  paren: lenv;
   syms: string[];
   vals: lval[];
 }
 
 function newLenv() {
   const env = new lenv();
+  env.paren = null;
   env.syms = [];
   env.vals = [];
   return env;
@@ -45,9 +47,12 @@ function lenv_get(env: lenv, key: lval) {
       return lval_copy(env.vals[i]);
     }
   }
+  if (env.paren) {
+    return lenv_get(env.paren, key);
+  }
   return lval_err("Unbound Symbol: %s", [key.sym]);
 }
-function lenv_put(env: lenv, key: lval, val: lval) {
+function lenv_def(env: lenv, key: lval, val: lval) {
   for (let i = 0; i < env.syms.length; i++) {
     // 存在即更新
     if (env.syms[i] === key.sym) {
@@ -59,6 +64,27 @@ function lenv_put(env: lenv, key: lval, val: lval) {
   env.syms.push(key.sym);
   env.vals.push(lval_copy(val));
 }
+function lenv_put(env: lenv, key: lval, val: lval) {
+  while (env.paren) { env = env.paren }
+  lenv_def(env, key, val)
+}
+function lenv_copy(env: lenv) {
+  const x = newLenv();
+  x.paren = env.paren;
+  for (let i = 0; i < env.syms.length; i++) {
+    const key = env.syms[i];
+    x.syms.push(key);
+    x.vals.push(lval_copy(env.vals[i]));
+  }
+  return x;
+}
+function lenv_del(env: lenv) {
+  for (let i = 0; i < env.syms.length; i++) {
+    env.syms[i] = null
+    lval_del(env.vals[i]);
+  }
+}
+
 type lbuildinFunc = (env: lenv, val: lval) => lval;
 class lval {
   type: LVAL;
@@ -67,6 +93,9 @@ class lval {
   err: string;
   sym: string;
   func: lbuildinFunc;
+  formals: lval;
+  body: lval;
+  env: lenv;
 
   cells: lval[];
 }
@@ -94,6 +123,15 @@ function lval_func(func: lbuildinFunc) {
   _lval.func = func;
   return _lval;
 }
+function lval_lambda(formals: lval, body: lval) {
+  const _lval = new lval();
+  _lval.type = LVAL.FUNC;
+  _lval.func = null;
+  _lval.formals = formals;
+  _lval.body = body;
+  _lval.env = newLenv();
+  return _lval;
+}
 function lval_sexpr() {
   const _lval = new lval();
   _lval.type = LVAL.SEXPR;
@@ -105,6 +143,11 @@ function lval_qexpr() {
   _lval.type = LVAL.QEXPR;
   _lval.cells = [];
   return _lval;
+}
+function lval_check_number(content:string) {
+  if (!/[0-9]/.test(content)) return lval_err("Invalid number: %s!", [content])
+
+  return lval_number(Number(content))
 }
 function lval_expr_del(x: lval) {
   for (let i = 0; i < x.cells.length; i++) {
@@ -122,6 +165,15 @@ function lval_del(x: lval) {
       break;
     case LVAL.SYM:
       x.sym = null;
+      break;
+    case LVAL.FUNC:
+      if (x.func) {
+        x.func = null;
+      } else {
+        lval_del(x.formals);
+        lval_del(x.body);
+        lenv_del(x.env);
+      }
       break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
@@ -156,7 +208,14 @@ function lval_copy(x: lval) {
       _lval.sym = x.sym;
       break;
     case LVAL.FUNC:
-      _lval.func = x.func;
+      if (x.func) {
+        _lval.func = x.func;
+      } else {
+        _lval.func = null;
+        _lval.formals = lval_copy(x.formals);
+        _lval.body = lval_copy(x.body);
+        _lval.env = lenv_copy(x.env);
+      }
       break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
@@ -204,11 +263,13 @@ function build_op(v: lval, sym: string) {
 function ltype_name(type: LVAL) {
   switch (type) {
     case LVAL.NUM:
-      return "<Number>";
+      return "<NUMBER>";
     case LVAL.SYM:
       return "<SYMBLE>";
     case LVAL.SEXPR:
       return "<SEXPR>";
+    case LVAL.FUNC:
+      return "<FUNCTION>";
     case LVAL.QEXPR:
       return "<QEXPR>";
     case LVAL.ERR:
@@ -325,10 +386,21 @@ function buildin_def(env: lenv, v: lval) {
   const node = v.cells[0];
   lassert(v, node.cells.length === v.cells.length-1, "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d", "def", node.cells.length, v.cells.length -1);
   for (let i = 0; i < node.cells.length; i++) {
-    lenv_put(env, node.cells[i], v.cells[i+1]);
+    lenv_def(env, node.cells[i], v.cells[i+1]);
   }
   lval_del(v);
   return lval_sexpr();
+}
+function buildin_lambda(env: lenv, v: lval) {
+  lassert_num("\\", v, 2);
+  lassert_type("\\", v, 0, LVAL.QEXPR);
+  lassert_type("\\", v, 1, LVAL.QEXPR);
+  const formals = lval_pop(v, 0);
+  const body = lval_pop(v, 0);
+  const lamdaVal = lval_lambda(formals, body);
+  lval_del(v);
+
+  return lamdaVal;
 }
 
 function lval_expr_eval(env: lenv, v: lval) {
@@ -353,7 +425,8 @@ function lval_expr_eval(env: lenv, v: lval) {
 
   // const res = build_op(v, op.sym);
   // const res = buildin(v, op.sym);
-  const res = op.func(env, v);
+  // const res = op.func(env, v);
+  const res = lval_call(env, v, op);
 
   lval_del(op);
 
@@ -366,6 +439,52 @@ function lval_eval(env: lenv, v: lval) {
   }
   if (v.type === LVAL.SEXPR) return lval_expr_eval(env, v);
   return v;
+}
+function lval_call(env: lenv, v: lval, op: lval) {
+  if (op.func) return op.func(env, v);
+
+  const count = op.formals.cells.length;
+  const total = v.cells.length;
+  while (v.cells.length) {
+    if (!op.formals.cells.length) {
+      lval_del(v);
+      lval_del(op);
+      return lval_err("Function '%s' passed too much arguments! Expect %d, Got %d", ["call", count, total]);
+    }
+    let keyVal = lval_pop(op.formals, 0);
+    if (keyVal.sym === "&") {
+      if (op.formals.cells.length != 1 && op.formals.cells[0].type === LVAL.SYM) {
+        lval_del(keyVal); lval_del(op); lval_del(v);
+        return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"])
+      }
+      lval_del(keyVal);
+      keyVal = lval_pop(op.formals, 0);
+      let elseVals = buildin_list(env, v);
+      lenv_def(env, keyVal, elseVals);
+      lval_del(keyVal); lval_del(elseVals); keyVal = elseVals = null;
+      break;
+    }
+    let valVal = lval_pop(v, 0);
+    lenv_def(env, keyVal, valVal);
+    keyVal = valVal = null;
+  }
+  lval_del(v);
+  // 判别变量中如果是'余'变量，则为其添加一个qexpr
+  if (op.formals.cells.length && op.formals.cells[0].sym === "&") {
+    if (op.formals.cells.length != 2 && op.formals.cells[1].type === LVAL.SYM) {
+      return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"])
+    }
+    lval_del(lval_pop(op.formals, 0));
+    let keyVal = lval_pop(op.formals, 0);
+    let valVal = lval_qexpr();
+    lenv_def(env, keyVal, valVal);
+    lval_del(keyVal); lval_del(valVal); keyVal = valVal = null;
+  }
+  if (op.formals.cells.length) {
+    return lval_copy(op);
+  } else {
+    return buildin_eval(env, lval_add(lval_qexpr(), lval_copy(op.body)));
+  }
 }
 
 function lval_expr_read(ast) {
@@ -385,7 +504,7 @@ function lval_expr_read(ast) {
 }
 
 function lval_read(ast) {
-  if (ast.type === "number") return lval_number(Number(ast.content));
+  if (ast.type === "number") return lval_check_number(ast.content);
   if (ast.type === "symbol") return lval_sym(ast.content);
 
   return lval_expr_read(ast);
@@ -410,6 +529,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "*", buildin_mul);
   buildin_env(env, "/", buildin_div);
   buildin_env(env, "def", buildin_def);
+  buildin_env(env, "\\", buildin_lambda);
 }
 
 function main() {
@@ -444,6 +564,7 @@ main();
 let env = newLenv();
 buildin_envs(env);
 process.on("exit", (num) => {
+  lenv_del(env);
   env = null;
 });
 
@@ -465,6 +586,16 @@ function lval_print(a: lval) {
       return stdoutWrite(a.num + "");
     case LVAL.SYM:
       return stdoutWrite(a.sym);
+    case LVAL.FUNC:
+      if (a.func) {
+        return stdoutWrite(ltype_name(LVAL.FUNC));
+      } else {
+        stdoutWrite("\\"); stdoutWrite(" ");
+        lval_print(a.formals);
+        stdoutWrite(" ");
+        lval_print(a.body);
+      }
+      break;
     case LVAL.SEXPR:
       return lval_expr_print(a, "(", ")");
     case LVAL.QEXPR:
