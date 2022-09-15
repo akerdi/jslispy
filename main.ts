@@ -459,13 +459,13 @@ function lval_call(env: lenv, v: lval, op: lval) {
       }
       lval_del(keyVal);
       keyVal = lval_pop(op.formals, 0);
-      let elseVals = buildin_list(env, v);
-      lenv_def(env, keyVal, elseVals);
-      lval_del(keyVal); lval_del(elseVals); keyVal = elseVals = null;
+      const elseVals = buildin_list(env, v);
+      lenv_def(op.env, keyVal, elseVals);
+      lval_del(keyVal); keyVal = null;
       break;
     }
     let valVal = lval_pop(v, 0);
-    lenv_def(env, keyVal, valVal);
+    lenv_def(op.env, keyVal, valVal);
     keyVal = valVal = null;
   }
   lval_del(v);
@@ -477,13 +477,14 @@ function lval_call(env: lenv, v: lval, op: lval) {
     lval_del(lval_pop(op.formals, 0));
     let keyVal = lval_pop(op.formals, 0);
     let valVal = lval_qexpr();
-    lenv_def(env, keyVal, valVal);
+    lenv_def(op.env, keyVal, valVal);
     lval_del(keyVal); lval_del(valVal); keyVal = valVal = null;
   }
   if (op.formals.cells.length) {
     return lval_copy(op);
   } else {
-    return buildin_eval(env, lval_add(lval_qexpr(), lval_copy(op.body)));
+    op.env.paren = env;
+    return buildin_eval(op.env, lval_add(lval_qexpr(), lval_copy(op.body)));
   }
 }
 
