@@ -603,6 +603,7 @@ function lval_expr_read(ast) {
     if (ast.children[i].content === ")") continue;
     if (ast.children[i].content === "{") continue;
     if (ast.children[i].content === "}") continue;
+    if (ast.children[i].type === "comment") continue;
     const a = lval_read(ast.children[i]);
     x = lval_add(x, a);
   }
