@@ -402,6 +402,111 @@ function buildin_lambda(env: lenv, v: lval) {
 
   return lamdaVal;
 }
+function lval_order(env: lenv, v: lval, op:">"|"<"|">="|"<=") {
+  lassert_num(op, v, 2);
+  lassert_type(op, v, 0, LVAL.NUM);
+  lassert_type(op, v, 1, LVAL.NUM);
+  let a = v.cells[0], b = v.cells[1];
+  let res:boolean
+  switch (op) {
+    case ">":
+      res = a.num > b.num;
+      break;
+    case ">=":
+      res = a.num >= b.num;
+      break;
+    case "<":
+      res = a.num < b.num;
+      break;
+    case "<=":
+      res = a.num <= b.num;
+      break;
+  }
+  lval_del(v);
+  return lval_number(res ? 1 : 0);
+}
+function lval_compare(a: lval, b: lval) {
+  if (a.type != b.type) return 0;
+
+  switch (a.type) {
+    case LVAL.NUM: return a.num == b.num;
+    case LVAL.ERR: return a.err == b.err;
+    case LVAL.SYM: return a.sym == b.sym;
+    case LVAL.FUNC: {
+      if (a.func) return a.func == b.func
+      else {
+        // 先判别env
+        if (a.env.paren != b.env.paren) return false;
+        for (let i = 0; i < a.env.syms.length; i++) {
+          const a_env_sym = a.env.syms[i]
+          if (a_env_sym != b.env.syms[i]) return false;
+          if (!lval_compare(a.env.vals[i], b.env.vals[i])) return false;
+        }
+        return lval_compare(a.formals, b.formals) && lval_compare(a.body, b.body);
+      }
+    }
+    case LVAL.SEXPR:
+    case LVAL.QEXPR: {
+      if (a.cells.length != b.cells.length) return false
+      for (let i = 0; i < a.cells.length; i++) {
+        return lval_compare(a.cells[i], b.cells[i])
+      }
+    }
+  }
+  return false
+}
+function buildin_gt(env: lenv, v: lval) {
+  return lval_order(env, v, ">");
+}
+function buildin_gte(env: lenv, v: lval) {
+  return lval_order(env, v, ">=");
+}
+function buildin_lt(env: lenv, v: lval) {
+  return lval_order(env, v, "<");
+}
+function buildin_lte(env: lenv, v: lval) {
+  return lval_order(env, v, "<=");
+}
+function buildin_compare(env: lenv, v: lval, op:"=="|"!=") {
+  lassert_num(op, v, 2);
+  lassert_type(op, v, 0, LVAL.NUM);
+  lassert_type(op, v, 0, LVAL.NUM);
+
+  const a = v.cells[0];
+  const b = v.cells[1];
+  let res:boolean;
+  if (op === "==") {
+    res = lval_compare(a, b);
+  } else {
+    res = !lval_compare(a, b);
+  }
+  lval_del(v);
+  return lval_number(res ? 1 : 0);
+}
+function buildin_eq(env: lenv, v: lval) {
+  return buildin_compare(env, v, "==");
+}
+function buildin_neq(env: lenv, v: lval) {
+  return buildin_compare(env, v, "!=");
+}
+function buildin_if(env: lenv, v: lval) {
+  lassert_num("if", v, 3);
+  lassert_type("if", v, 0, LVAL.NUM);
+  lassert_type("if", v, 1, LVAL.QEXPR);
+  lassert_type("if", v, 2, LVAL.QEXPR);
+
+  v.cells[1].type = LVAL.SEXPR;
+  v.cells[2].type = LVAL.SEXPR;
+
+  let res: lval;
+  if (v.cells[0].num > 0) {
+    res = lval_eval(env, lval_pop(v, 1));
+  } else {
+    res = lval_eval(env, lval_pop(v, 2));
+  }
+  lval_del(v);
+  return res;
+}
 
 function lval_expr_eval(env: lenv, v: lval) {
   let i;
@@ -531,6 +636,13 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "/", buildin_div);
   buildin_env(env, "def", buildin_def);
   buildin_env(env, "\\", buildin_lambda);
+  buildin_env(env, ">", buildin_gt);
+  buildin_env(env, ">=", buildin_gte);
+  buildin_env(env, "<", buildin_lt);
+  buildin_env(env, "<=", buildin_lte);
+  buildin_env(env, "==", buildin_eq);
+  buildin_env(env, "!=", buildin_neq);
+  buildin_env(env, "if", buildin_if);
 }
 
 function main() {
