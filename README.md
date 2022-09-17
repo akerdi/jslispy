@@ -21,9 +21,9 @@ Typescript
 ## 目标
 
 - [ ] Library
-- [ ] String/FILE
-- [ ] ORDER/COMPARE/IF
-- [ ] Function
+- [x] String/Load file
+- [x] ORDER/COMPARE/IF
+- [x] Function
 - [x] Env
 - [x] Q-Express
 - [x] S-Express
