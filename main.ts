@@ -417,7 +417,7 @@ function buildin_def(env: lenv, v: lval) {
     v.cells.length - 1
   );
   for (let i = 0; i < node.cells.length; i++) {
-    lenv_def(env, node.cells[i], v.cells[i + 1]);
+    lenv_put(env, node.cells[i], v.cells[i + 1]);
   }
   lval_del(v);
   return lval_sexpr();
@@ -571,10 +571,7 @@ function buildin_load(env: lenv, v: lval) {
     while (sexpr.cells.length) {
       const a = lval_pop(sexpr, 0);
       const res = lval_eval(env, a);
-      if (res.type != LVAL.ERR) {
-        lval_println(res);
-        continue;
-      } else {
+      if (res.type == LVAL.ERR) {
         program = null;
         lval_del(sexpr);
         return res;
