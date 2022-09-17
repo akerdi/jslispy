@@ -7,8 +7,9 @@ interface INode {
     | "symbol"
     | "number"
     | "string"
-    | "semi" // 保存 `(`, `)`
-    | "quote"; // 保存 `{`, `}`
+    | "sexpr" // 保存 `(`, `)`
+    | "qexpr" // 保存 `{`, `}`
+    | "comment";
   content?: string; // 保存实际数据
   children?: INode[]; // 保存下层数据
 }
@@ -21,6 +22,7 @@ enum LVAL {
   ERR,
   NUM,
   SYM,
+  STR,
   SEXPR,
   QEXPR,
   FUNC,
@@ -65,8 +67,10 @@ function lenv_def(env: lenv, key: lval, val: lval) {
   env.vals.push(lval_copy(val));
 }
 function lenv_put(env: lenv, key: lval, val: lval) {
-  while (env.paren) { env = env.paren }
-  lenv_def(env, key, val)
+  while (env.paren) {
+    env = env.paren;
+  }
+  lenv_def(env, key, val);
 }
 function lenv_copy(env: lenv) {
   const x = newLenv();
@@ -80,7 +84,7 @@ function lenv_copy(env: lenv) {
 }
 function lenv_del(env: lenv) {
   for (let i = 0; i < env.syms.length; i++) {
-    env.syms[i] = null
+    env.syms[i] = null;
     lval_del(env.vals[i]);
   }
 }
@@ -92,6 +96,7 @@ class lval {
   num: number;
   err: string;
   sym: string;
+  str: string;
   func: lbuildinFunc;
   formals: lval;
   body: lval;
@@ -115,6 +120,12 @@ function lval_sym(sym: string) {
   const _lval = new lval();
   _lval.type = LVAL.SYM;
   _lval.sym = sym;
+  return _lval;
+}
+function lval_str(str: string) {
+  const _lval = new lval();
+  _lval.type = LVAL.STR;
+  _lval.str = str;
   return _lval;
 }
 function lval_func(func: lbuildinFunc) {
@@ -144,10 +155,15 @@ function lval_qexpr() {
   _lval.cells = [];
   return _lval;
 }
-function lval_check_number(content:string) {
-  if (!/[0-9]/.test(content)) return lval_err("Invalid number: %s!", [content])
+function lval_check_number(content: string) {
+  if (!/[0-9]/.test(content)) return lval_err("Invalid number: %s!", [content]);
 
-  return lval_number(Number(content))
+  return lval_number(Number(content));
+}
+function lval_escape_doublequote_str(content: string) {
+  const content_length = content.length;
+  const str = content.substring(1, content_length - 1);
+  return lval_str(str);
 }
 function lval_expr_del(x: lval) {
   for (let i = 0; i < x.cells.length; i++) {
@@ -206,6 +222,9 @@ function lval_copy(x: lval) {
       break;
     case LVAL.SYM:
       _lval.sym = x.sym;
+      break;
+    case LVAL.STR:
+      _lval.str = x.str;
       break;
     case LVAL.FUNC:
       if (x.func) {
@@ -266,6 +285,8 @@ function ltype_name(type: LVAL) {
       return "<NUMBER>";
     case LVAL.SYM:
       return "<SYMBLE>";
+    case LVAL.STR:
+      return "<STRING>";
     case LVAL.SEXPR:
       return "<SEXPR>";
     case LVAL.FUNC:
@@ -384,9 +405,16 @@ function buildin_eval(env: lenv, v: lval) {
 function buildin_def(env: lenv, v: lval) {
   lassert_type("def", v, 0, LVAL.QEXPR);
   const node = v.cells[0];
-  lassert(v, node.cells.length === v.cells.length-1, "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d", "def", node.cells.length, v.cells.length -1);
+  lassert(
+    v,
+    node.cells.length === v.cells.length - 1,
+    "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d",
+    "def",
+    node.cells.length,
+    v.cells.length - 1
+  );
   for (let i = 0; i < node.cells.length; i++) {
-    lenv_def(env, node.cells[i], v.cells[i+1]);
+    lenv_def(env, node.cells[i], v.cells[i + 1]);
   }
   lval_del(v);
   return lval_sexpr();
@@ -402,12 +430,13 @@ function buildin_lambda(env: lenv, v: lval) {
 
   return lamdaVal;
 }
-function lval_order(env: lenv, v: lval, op:">"|"<"|">="|"<=") {
+function lval_order(env: lenv, v: lval, op: ">" | "<" | ">=" | "<=") {
   lassert_num(op, v, 2);
   lassert_type(op, v, 0, LVAL.NUM);
   lassert_type(op, v, 1, LVAL.NUM);
-  let a = v.cells[0], b = v.cells[1];
-  let res:boolean
+  let a = v.cells[0],
+    b = v.cells[1];
+  let res: boolean;
   switch (op) {
     case ">":
       res = a.num > b.num;
@@ -429,31 +458,36 @@ function lval_compare(a: lval, b: lval) {
   if (a.type != b.type) return 0;
 
   switch (a.type) {
-    case LVAL.NUM: return a.num == b.num;
-    case LVAL.ERR: return a.err == b.err;
-    case LVAL.SYM: return a.sym == b.sym;
+    case LVAL.NUM:
+      return a.num == b.num;
+    case LVAL.ERR:
+      return a.err == b.err;
+    case LVAL.SYM:
+      return a.sym == b.sym;
     case LVAL.FUNC: {
-      if (a.func) return a.func == b.func
+      if (a.func) return a.func == b.func;
       else {
         // 先判别env
         if (a.env.paren != b.env.paren) return false;
         for (let i = 0; i < a.env.syms.length; i++) {
-          const a_env_sym = a.env.syms[i]
+          const a_env_sym = a.env.syms[i];
           if (a_env_sym != b.env.syms[i]) return false;
           if (!lval_compare(a.env.vals[i], b.env.vals[i])) return false;
         }
-        return lval_compare(a.formals, b.formals) && lval_compare(a.body, b.body);
+        return (
+          lval_compare(a.formals, b.formals) && lval_compare(a.body, b.body)
+        );
       }
     }
     case LVAL.SEXPR:
     case LVAL.QEXPR: {
-      if (a.cells.length != b.cells.length) return false
+      if (a.cells.length != b.cells.length) return false;
       for (let i = 0; i < a.cells.length; i++) {
-        return lval_compare(a.cells[i], b.cells[i])
+        return lval_compare(a.cells[i], b.cells[i]);
       }
     }
   }
-  return false
+  return false;
 }
 function buildin_gt(env: lenv, v: lval) {
   return lval_order(env, v, ">");
@@ -467,14 +501,14 @@ function buildin_lt(env: lenv, v: lval) {
 function buildin_lte(env: lenv, v: lval) {
   return lval_order(env, v, "<=");
 }
-function buildin_compare(env: lenv, v: lval, op:"=="|"!=") {
+function buildin_compare(env: lenv, v: lval, op: "==" | "!=") {
   lassert_num(op, v, 2);
   lassert_type(op, v, 0, LVAL.NUM);
   lassert_type(op, v, 0, LVAL.NUM);
 
   const a = v.cells[0];
   const b = v.cells[1];
-  let res:boolean;
+  let res: boolean;
   if (op === "==") {
     res = lval_compare(a, b);
   } else {
@@ -506,6 +540,23 @@ function buildin_if(env: lenv, v: lval) {
   }
   lval_del(v);
   return res;
+}
+function buildin_print(env: lenv, v: lval) {
+  lassert(
+    v,
+    v.cells.length > 0,
+    "Function '%s' passed empty arguments!",
+    "print"
+  );
+
+  for (let i = 0; i < v.cells.length; i++) {
+    lval_print(v.cells[i]);
+    if (i != v.cells.length) {
+      stdoutWrite(" ");
+    }
+  }
+  stdoutWrite("\n");
+  return lval_sexpr();
 }
 
 function lval_expr_eval(env: lenv, v: lval) {
@@ -554,19 +605,31 @@ function lval_call(env: lenv, v: lval, op: lval) {
     if (!op.formals.cells.length) {
       lval_del(v);
       lval_del(op);
-      return lval_err("Function '%s' passed too much arguments! Expect %d, Got %d", ["call", count, total]);
+      return lval_err(
+        "Function '%s' passed too much arguments! Expect %d, Got %d",
+        ["call", count, total]
+      );
     }
     let keyVal = lval_pop(op.formals, 0);
     if (keyVal.sym === "&") {
-      if (op.formals.cells.length != 1 && op.formals.cells[0].type === LVAL.SYM) {
-        lval_del(keyVal); lval_del(op); lval_del(v);
-        return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"])
+      if (
+        op.formals.cells.length != 1 &&
+        op.formals.cells[0].type === LVAL.SYM
+      ) {
+        lval_del(keyVal);
+        lval_del(op);
+        lval_del(v);
+        return lval_err(
+          "Function '%s' passed '&' must followed by one symbol!",
+          ["call"]
+        );
       }
       lval_del(keyVal);
       keyVal = lval_pop(op.formals, 0);
       const elseVals = buildin_list(env, v);
       lenv_def(op.env, keyVal, elseVals);
-      lval_del(keyVal); keyVal = null;
+      lval_del(keyVal);
+      keyVal = null;
       break;
     }
     let valVal = lval_pop(v, 0);
@@ -577,13 +640,17 @@ function lval_call(env: lenv, v: lval, op: lval) {
   // 判别变量中如果是'余'变量，则为其添加一个qexpr
   if (op.formals.cells.length && op.formals.cells[0].sym === "&") {
     if (op.formals.cells.length != 2 && op.formals.cells[1].type === LVAL.SYM) {
-      return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"])
+      return lval_err("Function '%s' passed '&' must followed by one symbol!", [
+        "call",
+      ]);
     }
     lval_del(lval_pop(op.formals, 0));
     let keyVal = lval_pop(op.formals, 0);
     let valVal = lval_qexpr();
     lenv_def(op.env, keyVal, valVal);
-    lval_del(keyVal); lval_del(valVal); keyVal = valVal = null;
+    lval_del(keyVal);
+    lval_del(valVal);
+    keyVal = valVal = null;
   }
   if (op.formals.cells.length) {
     return lval_copy(op);
@@ -593,7 +660,7 @@ function lval_call(env: lenv, v: lval, op: lval) {
   }
 }
 
-function lval_expr_read(ast) {
+function lval_expr_read(ast: INode) {
   let x: lval;
   if (ast.type === ">") x = lval_sexpr();
   else if (ast.type === "sexpr") x = lval_sexpr();
@@ -610,9 +677,10 @@ function lval_expr_read(ast) {
   return x;
 }
 
-function lval_read(ast) {
+function lval_read(ast: INode) {
   if (ast.type === "number") return lval_check_number(ast.content);
   if (ast.type === "symbol") return lval_sym(ast.content);
+  if (ast.type === "string") return lval_escape_doublequote_str(ast.content);
 
   return lval_expr_read(ast);
 }
@@ -644,6 +712,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "==", buildin_eq);
   buildin_env(env, "!=", buildin_neq);
   buildin_env(env, "if", buildin_if);
+  buildin_env(env, "print", buildin_print);
 }
 
 function main() {
@@ -700,11 +769,18 @@ function lval_print(a: lval) {
       return stdoutWrite(a.num + "");
     case LVAL.SYM:
       return stdoutWrite(a.sym);
+    case LVAL.STR: {
+      stdoutWrite('"');
+      stdoutWrite(a.str);
+      stdoutWrite('"');
+      return;
+    }
     case LVAL.FUNC:
       if (a.func) {
         return stdoutWrite(ltype_name(LVAL.FUNC));
       } else {
-        stdoutWrite("\\"); stdoutWrite(" ");
+        stdoutWrite("\\");
+        stdoutWrite(" ");
         lval_print(a.formals);
         stdoutWrite(" ");
         lval_print(a.body);
