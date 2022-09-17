@@ -182,6 +182,9 @@ function lval_del(x: lval) {
     case LVAL.SYM:
       x.sym = null;
       break;
+    case LVAL.STR:
+      x.str = null;
+      break;
     case LVAL.FUNC:
       if (x.func) {
         x.func = null;
@@ -558,6 +561,32 @@ function buildin_print(env: lenv, v: lval) {
   stdoutWrite("\n");
   return lval_sexpr();
 }
+function buildin_load(env: lenv, v: lval) {
+  lassert_num("load", v, 1);
+  lassert_type("load", v, 0, LVAL.STR);
+
+  try {
+    let program: INode = compiler.loadfile(v.cells[0].str);
+    const sexpr = lval_read(program);
+    while (sexpr.cells.length) {
+      const a = lval_pop(sexpr, 0);
+      const res = lval_eval(env, a);
+      if (res.type != LVAL.ERR) {
+        lval_println(res);
+        continue;
+      } else {
+        program = null;
+        lval_del(sexpr);
+        return res;
+      }
+    }
+    program = null;
+    lval_del(sexpr);
+    return lval_sexpr();
+  } catch (error) {
+    return lval_err(error);
+  }
+}
 
 function lval_expr_eval(env: lenv, v: lval) {
   let i;
@@ -713,6 +742,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "!=", buildin_neq);
   buildin_env(env, "if", buildin_if);
   buildin_env(env, "print", buildin_print);
+  buildin_env(env, "load", buildin_load);
 }
 
 function main() {
