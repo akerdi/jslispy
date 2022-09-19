@@ -210,7 +210,7 @@ function lval_pop(x: lval, index: number) {
 }
 function lval_take(x: lval, index: number) {
   const a = lval_pop(x, index);
-  x = null;
+  lval_del(x);
   return a;
 }
 function lval_copy(x: lval) {
