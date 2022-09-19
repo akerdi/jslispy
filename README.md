@@ -49,4 +49,4 @@ Platform: darwin
 - 20220906 qexpr
 - 20220317 init
 
-## [jslispy 教程](alert("暂未实现, 即将开工, 敬请期待"))
+## [jslispy 教程](./tech/README.md)
