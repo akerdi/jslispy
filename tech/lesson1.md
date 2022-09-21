@@ -270,12 +270,13 @@ function build_op(v:lval, sym:string) {
     if (sym === "/") {
       // 除数分母为0时特殊判断
       if (y.num === 0) {
-        lval_del(x);
+        lval_del(x); lval_del(y);
         x = lval_err("Division on zero!");
         break;
       }
       x.num /= y.num;
     }
+    lval_del(y);
   }
   return x;
 }
