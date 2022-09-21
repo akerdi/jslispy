@@ -2,21 +2,22 @@
 
 使用 js 覆写[clispy](https://github.com/akerdi/buildyourownlisp)
 
-## Language
+## 语言
 
 Typescript
 
-## 开发
+## 运行
+
+`npm i` 先安装开发必要的库
 
     cp .vscode/launch.example.json .vscode/launch.json // 然后按键盘 F5
 
+> windows用户修改文件(.vscode/launch.json) - runtimeArgs内容为["run", "dev:win"]
+
 或者
 
-    yarn dev
-
-## 运行
-
-    yarn build && node dist/main.js
+    yarn dev // windows执行yarn dev:win
+    yarn dev:lesson1 // 执行第一课
 
 ## 目标
 
@@ -31,21 +32,22 @@ Typescript
 - [x] REPL
 - [x] init
 
-## Usage
+## 使用
 
     > + 3 2
     > + (* 30 20) (eval (eval { tail { 10 - 20 10  } })) // + (* 30 20) (eval (tail { 10 - 20 10  }) )
 
 eval { tail { 10 - 20 10 } }
 
-## Recommend Platform
+## 推荐平台
 
 IDE: vscode
 Node: 10.20.0
 Platform: darwin
 
-## History
+## 历史
 
+- 20220921 lesson1
 - 20220906 qexpr
 - 20220317 init
 
