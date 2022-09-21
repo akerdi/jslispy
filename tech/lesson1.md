@@ -89,7 +89,7 @@ function lval_number(num:number);
 function lval_sym(sym:string);
 function lval_sexpr();
 ```
-定义lval之后，为其增加一个便捷方法:
+定义lval之后，为其增加一组便捷方法:
 
 ```ts
 // 为容器x的cells增加元素
@@ -210,7 +210,7 @@ lval {
 }
 ```
 
-有了lval之后，我们就可以执行了
+有了lval之后，我们就可以执行了。
 
 ## lval_eval
 
