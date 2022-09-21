@@ -269,7 +269,7 @@ function build_op(v: lval, sym: string) {
     if (sym === "*") x.num *= y.num;
     if (sym === "/") {
       if (y.num === 0) {
-        lval_del(x);
+        lval_del(x); lval_del(y);
         x = lval_err("Division on zero!");
         break;
       }
