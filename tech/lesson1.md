@@ -157,9 +157,14 @@ function lval_println(a:lval) {
 ## lval_read
 
 ```ts
+function lval_check_number(content: string) {
+  if (!/[0-9]/.test(content)) return lval_err("Invalid number!");
+
+  return lval_number(Number(content));
+}
 function lval_read(ast) {
   // 单体数据直接转化
-  if (ast.type === "number") return lval_number(Number(ast.content));
+  if (ast.type === "number") return lval_check_number(ast.content);
   if (ast.type === "symbol") return lval_sym(ast.content);
   // 容器类型数据使用lval_expr_read方法辅助
   return lval_expr_read(ast);
@@ -169,7 +174,7 @@ function lval_expr_read(ast) {
   if (ast.type === ">") x = lval_sexpr();
   else if (ast.type === "sexpr") x = lval_sexpr();
   for (let i = 0; i < ast.children.length; i++) {
-    if (["(", ")", "{", "}"].include(ast.children[i].content)) continue;
+    if (["(", ")", "{", "}"].includes(ast.children[i].content)) continue;
     const a = lval_read(ast.children[i]);
     x = lval_add(x, a);
   }
@@ -289,4 +294,4 @@ function build_op(v:lval, sym:string) {
     + 3 2 (* 4 8)
     - 9 3 (/ 10 5)
 
-[1. 实现最简单的计算器功能 - 完整代码](./lesson1.js)
+[1. 实现最简单的计算器功能 - 完整代码](./lesson1.ts)
