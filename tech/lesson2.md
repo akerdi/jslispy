@@ -1,6 +1,6 @@
 # 2. QEXPR和内置方法
 
-上一章是最基础的一课, 这章将加入LVAL.QEXPR - Q容器。并且增加几个原生方法: head/tail/list/eval/join.
+上一章是最基础的一课, 这章将加入LVAL.QEXPR - Q容器。并且增加内建方法: `head`/`tail`/`list`/`eval`/`join`.
 
 ## 先加入LVAL.QEXPR
 
@@ -47,4 +47,8 @@ function lval_print(a:lval) {
 以上便把Q容器加进来了。他的作用是包住里面的元素，直到有人指定去启动，里面的表达式才会运转，否则只是保存的作用。
 
 运行`npm run dev:lesson2.1`, 输入如: `{ 1 2 a b c }` 可以看到结果打印出了原来的数据, 其他功能仍然保留。
+
+## 增加内建方法
+
+
 
