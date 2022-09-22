@@ -26,7 +26,7 @@ function main() {
     const result = chunk.replace(/[\r\n]/g, "");
     if (!!result) {
       try {
-        const ast: INode = compiler.compiler(result);
+        const ast:INode = compiler.compiler(result);
         // 开始lval_read
         const expr = lval_read(ast);
         // 开始lval_eval(expr对象在lval_eval中会被del掉)
@@ -162,19 +162,19 @@ function lval_check_number(content: string) {
 
   return lval_number(Number(content));
 }
-function lval_read(ast) {
+function lval_read(ast:INode) {
   // 单体数据直接转化
   if (ast.type === "number") return lval_check_number(ast.content);
   if (ast.type === "symbol") return lval_sym(ast.content);
   // 容器类型数据使用lval_expr_read方法辅助
   return lval_expr_read(ast);
 }
-function lval_expr_read(ast) {
+function lval_expr_read(ast:INode) {
   let x;
   if (ast.type === ">") x = lval_sexpr();
   else if (ast.type === "sexpr") x = lval_sexpr();
   for (let i = 0; i < ast.children.length; i++) {
-    if (["(", ")", "{", "}"].includes(ast.children[i].content)) continue;
+    if (["(", ")"].includes(ast.children[i].content)) continue;
     const a = lval_read(ast.children[i]);
     x = lval_add(x, a);
   }

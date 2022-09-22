@@ -9,7 +9,7 @@
 下面就来说明本教程制作过程。
 
 ## [1. 最简易的计算器功能](./lesson1.md)
-## 2. QEXPR
+## [2. QEXPR和内置方法](./lesson2.md)
 ## 3. ENV
 ## 4. Lambda
 ## 5. Order/Compare/If

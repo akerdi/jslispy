@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'TS_NODE_FILES=true TS_NODE_TRANSPILE_ONLY=true ts-node --files -r tsconfig-paths/register' main.ts",
     "dev:lesson1": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'TS_NODE_FILES=true TS_NODE_TRANSPILE_ONLY=true ts-node --files -r tsconfig-paths/register' tech/lesson1.ts",
+    "dev:lesson2.1": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'TS_NODE_FILES=true TS_NODE_TRANSPILE_ONLY=true ts-node --files -r tsconfig-paths/register' tech/lesson2.1.ts",
     "dev:win": "cross-env nodemon --watch '**/*.ts' --ignore '**/*.test.ts' --exec 'ts-node --files -r tsconfig-paths/register' main.ts",
     "start": "node main.js"
   },

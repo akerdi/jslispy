@@ -20,8 +20,10 @@ enum LVAL {
   NUM,
   // 形参、参数类型
   SYM,
-  // semi Expr
-  SEXPR
+  // semi Expr - S容器
+  SEXPR,
+  // quote Expr - Q容器
+  QEXPR
 }
 
 function stdoutWrite(prompt: string) {
@@ -61,6 +63,12 @@ function lval_sexpr() {
   _lval.cells = [];
   return _lval;
 }
+function lval_qexpr() {
+  const _lval = new lval();
+  _lval.type = LVAL.QEXPR;
+  _lval.cells = [];
+  return _lval;
+}
 function lval_check_number(content: string) {
   if (!/[0-9]/.test(content)) return lval_err("Invalid number!");
 
@@ -96,6 +104,7 @@ function lval_del(x:lval) {
     case LVAL.NUM: x.num = null; break;
     case LVAL.SYM: x.sym = null; break;
     case LVAL.SEXPR:
+    case LVAL.QEXPR:
       lval_expr_del(x); break;
   }
 }
@@ -111,8 +120,9 @@ function lval_expr_read(ast:INode) {
   let x;
   if (ast.type === ">") x = lval_sexpr();
   else if (ast.type === "sexpr") x = lval_sexpr();
+  else if (ast.type === "qexpr") x = lval_qexpr();
   for (let i = 0; i < ast.children.length; i++) {
-    if (["(", ")"].includes(ast.children[i].content)) continue;
+    if (["(", ")", "{", "}"].includes(ast.children[i].content)) continue;
     const a = lval_read(ast.children[i]);
     x = lval_add(x, a);
   }
@@ -227,6 +237,8 @@ function lval_print(a:lval) {
     case LVAL.SYM: return stdoutWrite(a.sym);
     case LVAL.SEXPR:
       return lval_expr_print(a, "(", ")");
+    case LVAL.QEXPR:
+      return lval_expr_print(a, "{", "}");
   }
 }
 function lval_println(a:lval) {
