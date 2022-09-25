@@ -252,10 +252,7 @@ function lval_copy(x: lval) {
 function build_op(v: lval, sym: string) {
   for (let i = 0; i < v.cells.length; i++) {
     if (v.cells[i].type !== LVAL.NUM) {
-      return lval_err("operation on non-number! Expect %s, Got %s", [
-        ltype_name(LVAL.NUM),
-        ltype_name(v.cells[i].type),
-      ]);
+      return lval_err("operation on non-number! Expect %s, Got %s", [ltype_name(LVAL.NUM), ltype_name(v.cells[i].type)]);
     }
   }
   let x = lval_pop(v, 0);
@@ -269,7 +266,8 @@ function build_op(v: lval, sym: string) {
     if (sym === "*") x.num *= y.num;
     if (sym === "/") {
       if (y.num === 0) {
-        lval_del(x); lval_del(y);
+        lval_del(x);
+        lval_del(y);
         x = lval_err("Division on zero!");
         break;
       }
@@ -310,36 +308,15 @@ function lassert(v: lval, cond: boolean, fmt: string, ...args) {
   throw err;
 }
 function lassert_num(func: string, v: lval, expect: number) {
-  return lassert(
-    v,
-    v.cells.length === expect,
-    "Function '%s' passed invalid count of arguments! Expect: %d, Got: %d!",
-    func,
-    expect,
-    v.cells.length
-  );
+  return lassert(v, v.cells.length === expect, "Function '%s' passed invalid count of arguments! Expect: %d, Got: %d!", func, expect, v.cells.length);
 }
 function lassert_type(func: string, v: lval, index: number, expect: LVAL) {
-  return lassert(
-    v,
-    v.cells[index].type === expect,
-    "Function '%s' passed invalid type at index: %d! \
+  return lassert(v, v.cells[index].type === expect, "Function '%s' passed invalid type at index: %d! \
     Expect: %s, Got: %s!  \
-    ",
-    func,
-    index,
-    ltype_name(expect),
-    ltype_name(v.cells[index].type)
-  );
+    ", func, index, ltype_name(expect), ltype_name(v.cells[index].type));
 }
 function lassert_not_empty(func: string, v: lval, index: number) {
-  return lassert(
-    v,
-    v.cells[0].cells.length !== 0,
-    "Function '%s' passed {} at index: %d!",
-    func,
-    index
-  );
+  return lassert(v, v.cells[0].cells.length !== 0, "Function '%s' passed {} at index: %d!", func, index);
 }
 
 function buildin_head(env: lenv, v: lval) {
@@ -408,14 +385,7 @@ function buildin_eval(env: lenv, v: lval) {
 function buildin_def(env: lenv, v: lval) {
   lassert_type("def", v, 0, LVAL.QEXPR);
   const node = v.cells[0];
-  lassert(
-    v,
-    node.cells.length === v.cells.length - 1,
-    "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d",
-    "def",
-    node.cells.length,
-    v.cells.length - 1
-  );
+  lassert(v, node.cells.length === v.cells.length - 1, "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d", "def", node.cells.length, v.cells.length - 1);
   for (let i = 0; i < node.cells.length; i++) {
     lenv_put(env, node.cells[i], v.cells[i + 1]);
   }
@@ -477,9 +447,7 @@ function lval_compare(a: lval, b: lval) {
           if (a_env_sym != b.env.syms[i]) return false;
           if (!lval_compare(a.env.vals[i], b.env.vals[i])) return false;
         }
-        return (
-          lval_compare(a.formals, b.formals) && lval_compare(a.body, b.body)
-        );
+        return lval_compare(a.formals, b.formals) && lval_compare(a.body, b.body);
       }
     }
     case LVAL.SEXPR:
@@ -545,12 +513,7 @@ function buildin_if(env: lenv, v: lval) {
   return res;
 }
 function buildin_print(env: lenv, v: lval) {
-  lassert(
-    v,
-    v.cells.length > 0,
-    "Function '%s' passed empty arguments!",
-    "print"
-  );
+  lassert(v, v.cells.length > 0, "Function '%s' passed empty arguments!", "print");
 
   for (let i = 0; i < v.cells.length; i++) {
     lval_print(v.cells[i]);
@@ -599,10 +562,7 @@ function lval_expr_eval(env: lenv, v: lval) {
   if (v.cells.length == 1) return lval_take(v, 0);
   const op = lval_pop(v, 0);
   if (op.type != LVAL.FUNC) {
-    return lval_err("Sexpr must start with function type! Expect %s, Got %s", [
-      ltype_name(LVAL.FUNC),
-      ltype_name(op.type),
-    ]);
+    return lval_err("Sexpr must start with function type! Expect %s, Got %s", [ltype_name(LVAL.FUNC), ltype_name(op.type)]);
   }
 
   // const res = build_op(v, op.sym);
@@ -631,24 +591,15 @@ function lval_call(env: lenv, v: lval, op: lval) {
     if (!op.formals.cells.length) {
       lval_del(v);
       lval_del(op);
-      return lval_err(
-        "Function '%s' passed too much arguments! Expect %d, Got %d",
-        ["call", count, total]
-      );
+      return lval_err("Function '%s' passed too much arguments! Expect %d, Got %d", ["call", count, total]);
     }
     let keyVal = lval_pop(op.formals, 0);
     if (keyVal.sym === "&") {
-      if (
-        op.formals.cells.length != 1 &&
-        op.formals.cells[0].type === LVAL.SYM
-      ) {
+      if (op.formals.cells.length != 1 && op.formals.cells[0].type === LVAL.SYM) {
         lval_del(keyVal);
         lval_del(op);
         lval_del(v);
-        return lval_err(
-          "Function '%s' passed '&' must followed by one symbol!",
-          ["call"]
-        );
+        return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
       }
       lval_del(keyVal);
       keyVal = lval_pop(op.formals, 0);
@@ -666,9 +617,7 @@ function lval_call(env: lenv, v: lval, op: lval) {
   // 判别变量中如果是'余'变量，则为其添加一个qexpr
   if (op.formals.cells.length && op.formals.cells[0].sym === "&") {
     if (op.formals.cells.length != 2 && op.formals.cells[1].type === LVAL.SYM) {
-      return lval_err("Function '%s' passed '&' must followed by one symbol!", [
-        "call",
-      ]);
+      return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
     }
     lval_del(lval_pop(op.formals, 0));
     let keyVal = lval_pop(op.formals, 0);
