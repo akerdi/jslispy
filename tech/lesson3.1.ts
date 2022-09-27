@@ -49,7 +49,7 @@ function lenv_put(env: lenv, key: lval, value: lval) {
     const sym = env.syms[i];
     if (sym === key.sym) {
       env.vals[i] = lval_copy(value);
-      return
+      return;
     }
   }
   env.syms.push(key.sym);
@@ -141,16 +141,25 @@ function lval_copy(v: lval) {
   const x = new lval();
   x.type = v.type;
   switch (x.type) {
-    case LVAL.ERR: x.err = v.err; break;
-    case LVAL.NUM: x.num = v.num; break;
-    case LVAL.SYM: x.sym = v.sym; break;
-    case LVAL.FUNC: x.func = v.func; break;
+    case LVAL.ERR:
+      x.err = v.err;
+      break;
+    case LVAL.NUM:
+      x.num = v.num;
+      break;
+    case LVAL.SYM:
+      x.sym = v.sym;
+      break;
+    case LVAL.FUNC:
+      x.func = v.func;
+      break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
       for (let i = 0; i < v.cells.length; i++) {
         x.cells.push(lval_copy(v.cells[i]));
       }
-    default: throw lval_err("Unknown Function: %d", [x.type]);
+    default:
+      throw lval_err("Unknown Function: %d", [x.type]);
   }
   return x;
 }
@@ -173,6 +182,8 @@ function lval_del(x: lval) {
       break;
     case LVAL.SYM:
       x.sym = null;
+      break;
+    case LVAL.FUNC:
       break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
@@ -202,10 +213,11 @@ function lval_expr_read(ast: INode) {
 }
 
 function lval_eval(env: lenv, v: lval) {
+  // 优先查看SYM类型
   if (v.type === LVAL.SYM) {
-    const funcVal = lenv_get(env, v);
+    const val = lenv_get(env, v);
     lval_del(v);
-    return funcVal;
+    return val;
   }
   // 容器对象使用lval_expr_eval辅助方法
   if (v.type === LVAL.SEXPR) return lval_expr_eval(env, v);
@@ -226,7 +238,7 @@ function lval_expr_eval(env: lenv, v: lval) {
   if (!v.cells.length) return v;
   if (v.cells.length == 1) return lval_take(v, 0);
   const op = lval_pop(v, 0);
-  if (op.type != LVAL.SYM) {
+  if (op.type != LVAL.FUNC) {
     return lval_err("sexpr must start with %s!", [ltype_name(LVAL.FUNC)]);
   }
 
@@ -361,11 +373,12 @@ function buildin_mul(env: lenv, v: lval) {
 function buildin_div(env: lenv, v: lval) {
   return build_op(v, "/");
 }
-function buildin_env(env: lenv, sym: string, func:lbuildinFunc) {
+function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);
   const funcVal = lval_func(func);
   lenv_put(env, symVal, funcVal);
-  lval_del(symVal); lval_del(funcVal);
+  lval_del(symVal);
+  lval_del(funcVal);
 }
 
 function buildin_envs(env: lenv) {
@@ -418,7 +431,7 @@ buildin_envs(env);
 process.on("exit", (num) => {
   lenv_del(env);
   env = null;
-})
+});
 
 // 打印lval对象
 function lval_expr_print(a: lval, open: string, close: string) {
@@ -443,7 +456,8 @@ function lval_print(a: lval) {
       return lval_expr_print(a, "(", ")");
     case LVAL.QEXPR:
       return lval_expr_print(a, "{", "}");
-    default: return stdoutWrite(ltype_name(LVAL.FUNC));
+    default:
+      return stdoutWrite(ltype_name(LVAL.FUNC));
   }
 }
 function lval_println(a: lval) {
