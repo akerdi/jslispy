@@ -6,9 +6,11 @@
 
 ## 3.1. 加入 Env
 
-环境上下文保存指令，env.syms 链式保存指令，env.vals 保存对应的类型，可以是 NUM、FUNC、也可以是未来要保存在里面的 lambda 表达式，只要他是 lval 类型。
+环境上下文保存指令, 主要的两个变量: `class lenv {syms:string[]; vals:lval[]}`. env.syms 链式保存指令，env.vals 保存对应的类型，可以是 NUM、FUNC、也可以是未来要保存在里面的 lambda 表达式等等类型，只要他是 lval 类型。
 
-开始到结束: `buildin_envs`依次加入内建方法, `lval_eval`中遇到`v.type === LVAL.SYM`时，使用`lenv_get`获取环境上下文中的数据。
+总结3.1. 内容: `buildin_envs`依次加入内建方法, `lval_eval`中遇到`v.type === LVAL.SYM`时，使用`lenv_get`获取环境上下文中的数据。
+
+下面增加lenv及相关方法:
 
 ```ts
 class lenv {
