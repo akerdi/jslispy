@@ -115,7 +115,73 @@ function lval_expr_eval(env: lenv, v: lval) {
   }
   // const res = build_op(v, op.sym);
 + // const res = build(v, op.sym);
-+ const res = op.func(env, v);
++ const res = op.func(env, v); // 直接使用内建方法执行函数
   return res;
 }
+// 废弃lesson2.3新添加的build方法
+-function build_op(v: lval, sym: string) {
+- ...
+-}
+function ltype_name(type: LVAL) {
+    ...
+    case LVAL.SYM: return "<Symbol>";
++   case LVAL.FUNC: return "<Function>";
+    ...
+}
 ```
+
+以上准备好了lenv、lval相关方法，下面去使用这些方法:
+
+```ts
+main();
++// 创建全局环境变量，并且执行buildin_envs开始配置化内建方法
++let env = newLenv();
++buildin_envs(env);
++process.on("exit", (num) => {
++ lenv_del(env);
++ env = null;
++});
+
++function buildin_add(env: lenv, v: lval) {
++ return build_op(v, "+");
++}
++function buildin_sub(env: lenv, v: lval) {
++ return build_op(v, "-");
++}
++function buildin_mul(env: lenv, v: lval) {
++ return build_op(v, "*");
++}
++function buildin_div(env: lenv, v: lval) {
++ return build_op(v, "/");
++}
++function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
++ const symVal = lval_sym(sym);
++ const funcVal = lval_func(func);
++ lenv_put(env, symVal, funcVal);
++ lval_del(symVal);
++ lval_del(funcVal);
++}
++
++function buildin_envs(env: lenv) {
++ buildin_env(env, "head", buildin_head);
++ buildin_env(env, "tail", buildin_tail);
++ buildin_env(env, "list", buildin_list);
++ buildin_env(env, "eval", buildin_eval);
++ buildin_env(env, "join", buildin_join);
++ buildin_env(env, "+", buildin_add);
++ buildin_env(env, "-", buildin_sub);
++ buildin_env(env, "*", buildin_mul);
++ buildin_env(env, "/", buildin_div);
++}
+```
+
+由于全局env已经保存有当前所有内建方法，当`lval_eval`通过LVAL.SYM拿到存储的值或者方法，最后通过 `lval_expr_eval` 执行`const res = op.func(v, op.sym);`成功.
+
+运行`npm run dev:lesson3.1`，输入lesson2测试结果，发现结果完全一致!
+
+> 由于新加入lenv全局变量，那么原来的buildin_*、lval_eval、lval_expr_eval等方法接收的第一个参数添加为lenv, 如 `lval_eval(v:lval):lval` -> `lval_eval(env:lenv, v:lval):lval`
+
+## ## 3.2. 新增内建函数`def`
+
+`def` 如同JS语言的`let`命令，其会在对应的环境变量中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
+
