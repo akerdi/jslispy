@@ -1,12 +1,14 @@
-# 3. ENV 环境变量
+# 3. ENV 环境上下文
 
-环境变量是及其重要的一课。是自由组织代码？还是按功能优雅配置化？这在之后配置能明显凸显这章的重要性。
+环境上下文是及其重要的一课。是自由组织代码？还是按功能优雅配置化？这在之后配置能明显凸显这章的重要性。
+
+3.1. 加入环境上下文，并且能保证支持lesson2的可执行结果；3.2. 加入新的内置方法`def`.
 
 ## 3.1. 加入 Env
 
-环境对象保存指令，env.syms 链式保存指令，env.vals 保存对应的类型，可以是 NUM、FUNC、也可以是未来要保存在里面的 lambda 表达式，只要他是 lval 类型。
+环境上下文保存指令，env.syms 链式保存指令，env.vals 保存对应的类型，可以是 NUM、FUNC、也可以是未来要保存在里面的 lambda 表达式，只要他是 lval 类型。
 
-开始到结束: `buildin_envs`依次加入内建方法, `lval_eval`中遇到`v.type === LVAL.SYM`时，使用`lenv_get`获取环境变量中的数据。
+开始到结束: `buildin_envs`依次加入内建方法, `lval_eval`中遇到`v.type === LVAL.SYM`时，使用`lenv_get`获取环境上下文中的数据。
 
 ```ts
 class lenv {
@@ -134,7 +136,7 @@ function ltype_name(type: LVAL) {
 
 ```ts
 main();
-+// 创建全局环境变量，并且执行buildin_envs开始配置化内建方法
++// 创建全局环境上下文，并且执行buildin_envs开始配置化内建方法
 +let env = newLenv();
 +buildin_envs(env);
 +process.on("exit", (num) => {
@@ -183,5 +185,5 @@ main();
 
 ## ## 3.2. 新增内建函数`def`
 
-`def` 如同JS语言的`let`命令，其会在对应的环境变量中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
+`def` 如同JS语言的`let`命令，其会在对应的环境上下文中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
 
