@@ -189,3 +189,34 @@ main();
 
 `def` 如同JS语言的`let`命令，其会在对应的环境上下文中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
 
+怎么做？只要往`buildin_envs`中加入一行，申请新建内建方法: `buildin_env(env, "def", buildin_def)`，然后实现`buildin_def`方法即可:
+
+```ts
+function buildin_envs(env: lenv) {
+  ...
++ buildin_env(env, "def", buildin_def);
+}
++function buildin_var(env: lenv, v: lval, sym: string) {
++ lassert_type(sym, v, 0, LVAL.QEXPR);
++ const args = v.cells[0];
++ lassert(v, args.cells.length == v.cells.length-1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, (v.cells.length-1));
++ for (let i = 0; i < args.cells.length; i++) {
++   lassert_type(sym, args, i, LVAL.SYM);
++ }
++ for (let i = 0; i < args.cells.length; i++) {
++   lenv_def(env, args.cells[i], v.cells[i+1]);
++ }
++ lval_del(v);
++ return lval_sexpr();
++}
++function buildin_def(env: lenv, v: lval) {
++ return buildin_var(env, v, "def");
++}
+```
+
+运行`npm run dev:lesson3.2`, 输入``, 测试运算:
+
+    > def { x y z } 1 2 3
+    ()
+    > + x y z
+    6

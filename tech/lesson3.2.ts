@@ -44,7 +44,7 @@ function lenv_get(env: lenv, key: lval) {
   }
   return lval_err("Unbound Symbol: %s", [key.sym]);
 }
-function lenv_put(env: lenv, key: lval, value: lval) {
+function lenv_def(env: lenv, key: lval, value: lval) {
   for (let i = 0; i < env.syms.length; i++) {
     const sym = env.syms[i];
     if (sym === key.sym) {
@@ -373,10 +373,26 @@ function buildin_mul(env: lenv, v: lval) {
 function buildin_div(env: lenv, v: lval) {
   return build_op(v, "/");
 }
+function buildin_var(env: lenv, v: lval, sym: string) {
+  lassert_type(sym, v, 0, LVAL.QEXPR);
+  const args = v.cells[0];
+  lassert(v, args.cells.length == v.cells.length-1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, (v.cells.length-1));
+  for (let i = 0; i < args.cells.length; i++) {
+    lassert_type(sym, args, i, LVAL.SYM);
+  }
+  for (let i = 0; i < args.cells.length; i++) {
+    lenv_def(env, args.cells[i], v.cells[i+1]);
+  }
+  lval_del(v);
+  return lval_sexpr();
+}
+function buildin_def(env: lenv, v: lval) {
+  return buildin_var(env, v, "def");
+}
 function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);
   const funcVal = lval_func(func);
-  lenv_put(env, symVal, funcVal);
+  lenv_def(env, symVal, funcVal);
   lval_del(symVal);
   lval_del(funcVal);
 }
@@ -391,6 +407,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "-", buildin_sub);
   buildin_env(env, "*", buildin_mul);
   buildin_env(env, "/", buildin_div);
+  buildin_env(env, "def", buildin_def);
 }
 
 function main() {
