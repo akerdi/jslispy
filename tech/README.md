@@ -15,7 +15,7 @@
 
 ## [3. ENV 环境上下文](./lesson3.md)
 
-## 4. Lambda
+## [4. Lambda 表达式](./lesson4.md)
 
 ## 5. Order/Compare/If
 
