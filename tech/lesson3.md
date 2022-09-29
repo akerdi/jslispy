@@ -99,6 +99,7 @@ function lval_del(x: lval) {
 +   case LVAL.FUNC:
 +     // 内建函数时不作处理
 +     break;
+  ...
 }
 function lval_eval(env: lenv, v: lval) {
 + // 优先查看SYM类型
@@ -137,15 +138,6 @@ function ltype_name(type: LVAL) {
 以上准备好了lenv、lval相关方法，下面去使用这些方法:
 
 ```ts
-main();
-+// 创建全局环境上下文，并且执行buildin_envs开始配置化内建方法
-+let env = newLenv();
-+buildin_envs(env);
-+process.on("exit", (num) => {
-+ lenv_del(env);
-+ env = null;
-+});
-
 +function buildin_add(env: lenv, v: lval) {
 + return build_op(v, "+");
 +}
@@ -165,7 +157,6 @@ main();
 + lval_del(symVal);
 + lval_del(funcVal);
 +}
-+
 +function buildin_envs(env: lenv) {
 + buildin_env(env, "head", buildin_head);
 + buildin_env(env, "tail", buildin_tail);
@@ -177,6 +168,15 @@ main();
 + buildin_env(env, "*", buildin_mul);
 + buildin_env(env, "/", buildin_div);
 +}
+
+main();
++// 创建全局环境上下文，并且执行buildin_envs开始配置化内建方法
++let env = newLenv();
++buildin_envs(env);
++process.on("exit", (num) => {
++ lenv_del(env);
++ env = null;
++});
 ```
 
 由于全局env已经保存有当前所有内建方法，当`lval_eval`通过LVAL.SYM拿到存储的值或者方法，最后通过 `lval_expr_eval` 执行`const res = op.func(v, op.sym);`成功.
@@ -185,9 +185,9 @@ main();
 
 > 由于新加入lenv全局变量，那么原来的buildin_*、lval_eval、lval_expr_eval等方法接收的第一个参数添加为lenv, 如 `lval_eval(v:lval):lval` -> `lval_eval(env:lenv, v:lval):lval`
 
-## ## 3.2. 新增内建函数`def`
+## 3.2. 新增内建函数`def`
 
-`def` 如同JS语言的`let`命令，其会在对应的环境上下文中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
+`def` 如同JS语言的`var`命令，其会在对应的环境上下文中存储对应数据，定义方法如`def {<arg0> <arg1> ...} val0 val1 ...`
 
 怎么做？只要往`buildin_envs`中加入一行，申请新建内建方法: `buildin_env(env, "def", buildin_def)`，然后实现`buildin_def`方法即可:
 
