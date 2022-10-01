@@ -1,6 +1,6 @@
 # jslispy
 
-使用 js 覆写[clispy](https://github.com/akerdi/buildyourownlisp)
+使用 Typescript 编译 lisp 语法，并支持运行时环境。
 
 ## 语言
 
@@ -12,7 +12,7 @@ Typescript
 
     cp .vscode/launch.example.json .vscode/launch.json // 然后按键盘 F5
 
-> windows用户修改文件(.vscode/launch.json) - runtimeArgs内容为["run", "dev:win"]
+> windows 用户修改文件(.vscode/launch.json) - runtimeArgs 内容为["run", "dev:win"]
 
 或者
 
@@ -51,4 +51,14 @@ Platform: darwin
 - 20220906 qexpr
 - 20220317 init
 
-## [jslispy 教程](./tech/README.md)
+## 教程
+
+[compiler 教程](./compiler/tech/README.md)
+
+[jslispy 教程](./tech/README.md)
+
+## 相关
+
+[clispy](https://github.com/akerdi/buildyourownlisp)
+
+[Build Your Own Lisp](https://buildyourownlisp.com/)
