@@ -160,9 +160,8 @@ function lval_check_number(content: string) {
 
   return lval_number(Number(content));
 }
-function lval_escape_doublequote_str(content: string) {
-  const content_length = content.length;
-  const str = content.substring(1, content_length - 1);
+function lval_check_string(content: string) {
+  const str = content;
   return lval_str(str);
 }
 function lval_expr_del(x: lval) {
@@ -655,7 +654,7 @@ function lval_expr_read(ast: INode) {
 function lval_read(ast: INode) {
   if (ast.type === "number") return lval_check_number(ast.content);
   if (ast.type === "symbol") return lval_sym(ast.content);
-  if (ast.type === "string") return lval_escape_doublequote_str(ast.content);
+  if (ast.type === "string") return lval_check_string(ast.content);
 
   return lval_expr_read(ast);
 }
