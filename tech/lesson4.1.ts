@@ -88,7 +88,7 @@ class lval {
   func: lbuildinFunc; // type=Func时保存的内建方法
 
   env: lenv; // Lambda表达式形式的环境上下文
-  format: lval; // Lambda表达式的参数列表
+  formal: lval; // Lambda表达式的参数列表
   body: lval; // Lambda表达式的body表达式列表
 
   cells: lval[]; // LVAL.SEXPR时保存子lval数组
@@ -118,12 +118,12 @@ function lval_func(func: lbuildinFunc) {
   _lval.func = func;
   return _lval;
 }
-function lval_lambda(format: lval, body: lval) {
+function lval_lambda(formal: lval, body: lval) {
   const _lval = new lval();
   _lval.type = LVAL.FUNC;
   _lval.env = newLenv();
   _lval.func = null;
-  _lval.format = format;
+  _lval.formal = formal;
   _lval.body = body;
   return _lval;
 }
@@ -178,7 +178,7 @@ function lval_copy(v: lval) {
           x.func = v.func;
         } else {
           x.env = lenv_copy(v.env);
-          x.format = lval_copy(v.format);
+          x.formal = lval_copy(v.formal);
           x.body = lval_copy(v.body);
           x.func = null;
         }
@@ -218,7 +218,7 @@ function lval_del(x: lval) {
       {
         if (!x.func) {
           lenv_del(x.env);
-          lval_del(x.format);
+          lval_del(x.formal);
           lval_del(x.body);
         }
       }
@@ -434,9 +434,9 @@ function buildin_lambda(env: lenv, v: lval) {
   lassert_num("\\", v, 2);
   lassert_type("\\", v, 0, LVAL.QEXPR);
   lassert_type("\\", v, 1, LVAL.QEXPR);
-  let formatVal = lval_pop(v, 0);
+  let formalVal = lval_pop(v, 0);
   let bodyVal = lval_pop(v, 0);
-  const lambdaVal = lval_lambda(formatVal, bodyVal);
+  const lambdaVal = lval_lambda(formalVal, bodyVal);
 
   lval_del(v);
   return lambdaVal;
@@ -528,7 +528,7 @@ function lval_print(a: lval) {
       } else {
         stdoutWrite("\\");
         stdoutWrite(" ");
-        lval_print(a.format);
+        lval_print(a.formal);
         stdoutWrite(" ");
         lval_print(a.body);
       }
