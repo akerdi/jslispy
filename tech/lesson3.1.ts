@@ -245,6 +245,8 @@ function lval_expr_eval(env: lenv, v: lval) {
   // const res = build_op(v, op.sym);
   // const res = build(v, op.sym);
   const res = op.func(env, v);
+
+  lval_del(op);
   return res;
 }
 
@@ -457,7 +459,7 @@ function lval_print(a: lval) {
     case LVAL.QEXPR:
       return lval_expr_print(a, "{", "}");
     default:
-      return stdoutWrite(ltype_name(LVAL.FUNC));
+      return stdoutWrite(ltype_name(a.type));
   }
 }
 function lval_println(a: lval) {

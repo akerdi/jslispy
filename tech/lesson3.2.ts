@@ -245,6 +245,8 @@ function lval_expr_eval(env: lenv, v: lval) {
   // const res = build_op(v, op.sym);
   // const res = build(v, op.sym);
   const res = op.func(env, v);
+
+  lval_del(op);
   return res;
 }
 
@@ -376,12 +378,12 @@ function buildin_div(env: lenv, v: lval) {
 function buildin_var(env: lenv, v: lval, sym: string) {
   lassert_type(sym, v, 0, LVAL.QEXPR);
   const args = v.cells[0];
-  lassert(v, args.cells.length == v.cells.length-1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, (v.cells.length-1));
+  lassert(v, args.cells.length == v.cells.length - 1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, v.cells.length - 1);
   for (let i = 0; i < args.cells.length; i++) {
     lassert_type(sym, args, i, LVAL.SYM);
   }
   for (let i = 0; i < args.cells.length; i++) {
-    lenv_def(env, args.cells[i], v.cells[i+1]);
+    lenv_def(env, args.cells[i], v.cells[i + 1]);
   }
   lval_del(v);
   return lval_sexpr();
@@ -474,7 +476,7 @@ function lval_print(a: lval) {
     case LVAL.QEXPR:
       return lval_expr_print(a, "{", "}");
     default:
-      return stdoutWrite(ltype_name(LVAL.FUNC));
+      return stdoutWrite(ltype_name(a.type));
   }
 }
 function lval_println(a: lval) {

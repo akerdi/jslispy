@@ -86,6 +86,8 @@ function buildin_head(v: lval) {
 function lval_expr_eval(v: lval) {
 + // const res = build_op(v, op.sym);
 + const res = build(v, op.sym);
+
+  lval_del(op);
   return res;
 }
 ```
