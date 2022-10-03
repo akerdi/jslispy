@@ -35,6 +35,14 @@ function lenv_del(env: lenv) {
   }
   env.syms = env.vals = null;
 }
+function lenv_copy(env: lenv) {
+  const _env = newLenv();
+  for (let i = 0; i < env.syms.length; i++) {
+    _env.syms.push(env.syms[i]);
+    _env.vals.push(lval_copy(env.vals[i]));
+  }
+  return _env;
+}
 function lenv_get(env: lenv, key: lval) {
   for (let i = 0; i < env.syms.length; i++) {
     const sym = env.syms[i];
@@ -78,6 +86,11 @@ class lval {
   err: string; // LVAL.ERR时保存错误
   sym: string; // LVAL.SYM时保存形参、参数
   func: lbuildinFunc; // type=Func时保存的内建方法
+
+  env: lenv; // Lambda表达式形式的环境上下文
+  format: lval; // Lambda表达式的参数列表
+  body: lval; // Lambda表达式的body表达式列表
+
   cells: lval[]; // LVAL.SEXPR时保存子lval数组
 }
 // 创建各类型lval便捷方法
@@ -103,6 +116,15 @@ function lval_func(func: lbuildinFunc) {
   const _lval = new lval();
   _lval.type = LVAL.FUNC;
   _lval.func = func;
+  return _lval;
+}
+function lval_lambda(format: lval, body: lval) {
+  const _lval = new lval();
+  _lval.type = LVAL.FUNC;
+  _lval.env = newLenv();
+  _lval.func = null;
+  _lval.format = format;
+  _lval.body = body;
   return _lval;
 }
 function lval_sexpr() {
@@ -151,7 +173,16 @@ function lval_copy(v: lval) {
       x.sym = v.sym;
       break;
     case LVAL.FUNC:
-      x.func = v.func;
+      {
+        if (v.func) {
+          x.func = v.func;
+        } else {
+          x.env = lenv_copy(v.env);
+          x.format = lval_copy(v.format);
+          x.body = lval_copy(v.body);
+          x.func = null;
+        }
+      }
       break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
@@ -184,6 +215,13 @@ function lval_del(x: lval) {
       x.sym = null;
       break;
     case LVAL.FUNC:
+      {
+        if (!x.func) {
+          lenv_del(x.env);
+          lval_del(x.format);
+          lval_del(x.body);
+        }
+      }
       break;
     case LVAL.SEXPR:
     case LVAL.QEXPR:
@@ -245,6 +283,8 @@ function lval_expr_eval(env: lenv, v: lval) {
   // const res = build_op(v, op.sym);
   // const res = build(v, op.sym);
   const res = op.func(env, v);
+
+  lval_del(op);
   return res;
 }
 
@@ -376,18 +416,30 @@ function buildin_div(env: lenv, v: lval) {
 function buildin_var(env: lenv, v: lval, sym: string) {
   lassert_type(sym, v, 0, LVAL.QEXPR);
   const args = v.cells[0];
-  lassert(v, args.cells.length == v.cells.length-1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, (v.cells.length-1));
+  lassert(v, args.cells.length == v.cells.length - 1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, v.cells.length - 1);
   for (let i = 0; i < args.cells.length; i++) {
     lassert_type(sym, args, i, LVAL.SYM);
   }
   for (let i = 0; i < args.cells.length; i++) {
-    lenv_def(env, args.cells[i], v.cells[i+1]);
+    lenv_def(env, args.cells[i], v.cells[i + 1]);
   }
   lval_del(v);
   return lval_sexpr();
 }
 function buildin_def(env: lenv, v: lval) {
   return buildin_var(env, v, "def");
+}
+
+function buildin_lambda(env: lenv, v: lval) {
+  lassert_num("\\", v, 2);
+  lassert_type("\\", v, 0, LVAL.QEXPR);
+  lassert_type("\\", v, 1, LVAL.QEXPR);
+  let formatVal = lval_pop(v, 0);
+  let bodyVal = lval_pop(v, 0);
+  const lambdaVal = lval_lambda(formatVal, bodyVal);
+
+  lval_del(v);
+  return lambdaVal;
 }
 function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);
@@ -408,6 +460,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "*", buildin_mul);
   buildin_env(env, "/", buildin_div);
   buildin_env(env, "def", buildin_def);
+  buildin_env(env, "\\", buildin_lambda);
 }
 
 function main() {
@@ -469,12 +522,23 @@ function lval_print(a: lval) {
       return stdoutWrite(a.num + "");
     case LVAL.SYM:
       return stdoutWrite(a.sym);
+    case LVAL.FUNC:
+      if (a.func) {
+        stdoutWrite(ltype_name(LVAL.FUNC));
+      } else {
+        stdoutWrite("\\");
+        stdoutWrite(" ");
+        lval_print(a.format);
+        stdoutWrite(" ");
+        lval_print(a.body);
+      }
+      return;
     case LVAL.SEXPR:
       return lval_expr_print(a, "(", ")");
     case LVAL.QEXPR:
       return lval_expr_print(a, "{", "}");
     default:
-      return stdoutWrite(ltype_name(LVAL.FUNC));
+      return stdoutWrite(ltype_name(a.type));
   }
 }
 function lval_println(a: lval) {
