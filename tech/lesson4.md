@@ -123,3 +123,5 @@ function buildin_envs(env: lenv) {
 ```
 
 执行: `npm run dev:lesson4.1`, 接着输入: `\ { x y } { + x y }`和`\` 可以看到对应的输出。
+
+## 4.2. 执行 Lambda 表达式
