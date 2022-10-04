@@ -30,6 +30,8 @@ lval {
 
 > 确保 Lambda 的 func 为空，func 是区别两者的关键。
 
+在开始定义内建的 Lambda 式之前，需要做好下面的准备工作:
+
 ```ts
 // 为lenv 增加copy 方法
 +function lenv_copy(env: lenv) {
@@ -59,6 +61,7 @@ class lval {
 + _lval.body = body;
 + return _lval;
 +}
+// lval_copy 增加新定义的Lambda数据的拷贝
 function lval_copy(v: lval) {
 -   case LVAL.FUNC:
 -     x.func = v.func;
@@ -74,6 +77,7 @@ function lval_copy(v: lval) {
 +   }
     break;
 }
+// lval_del 增加新定义的Lambda数据的删除
 function lval_del(x: lval) {
 -   case LVAL.FUNC:
 +   case LVAL.FUNC: {
@@ -85,6 +89,7 @@ function lval_del(x: lval) {
 +   }
     break;
 }
+// lval_print 增加新定义的Lambda数据的打印
 function lval_print(x: lval) {
   ...
 +   case LVAL.FUNC:
@@ -122,11 +127,11 @@ function buildin_envs(env: lenv) {
 }
 ```
 
-执行: `npm run dev:lesson4.1`, 接着输入: `\ { x y } { + x y }`和`\` 可以看到对应的输出。
+执行: `npm run dev:lesson4.1`, 接着输入: `\ { x y } { + x y }`可以看到对应的输出。
 
 ## 4.2. 执行 Lambda 表达式
 
-Lambda 表达式很依赖[lesson3](./lesson3.md)中的环境上下文。如我们要为 lenv {} 增加父节点变量: `paren`。可以理解为 Lambda 对象的 env，可以依靠 paren 找到上层的环境上下文，从而得到上层设置的变量:
+Lambda 表达式很依赖[lesson3](./lesson3.md)中的环境上下文。如我们为 lenv {} 增加父节点变量: `paren`，理解为 Lambda 对象的 env 可以依靠 paren 找到上层的环境上下文，从而得到上层设置的变量:
 
 ```ts
 class lenv {
@@ -224,7 +229,7 @@ function lval_call(env: lenv, v: lval, op: lval) {
 }
 ```
 
-如果还有形参，则返回拷贝后的 Lambda 函数，拷贝后的 Lambda 函数的环境上下文将带有写入的实参 - 作用是方法演变:
+如果还有形参，则返回拷贝后的 Lambda 函数，拷贝后的 Lambda 函数的环境上下文将带有写入的实参 - 方便"方法演变":
 
     > def {add} (\ {x y} {+ x y})
     > def {add_ten} (add 10) // 将add 转为 add_ten
