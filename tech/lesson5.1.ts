@@ -515,6 +515,43 @@ function buildin_lambda(env: lenv, v: lval) {
   lval_del(v);
   return lambdaVal;
 }
+function buildin_compare(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
+  lassert_num(sym, v, 2);
+  lassert_type(sym, v, 0, LVAL.NUM);
+  lassert_type(sym, v, 1, LVAL.NUM);
+
+  const a = v.cells[0];
+  const b = v.cells[1];
+  let res = 0;
+  switch (sym) {
+    case ">":
+      res = a.num > b.num ? 1 : 0;
+      break;
+    case ">=":
+      res = a.num >= b.num ? 1 : 0;
+      break;
+    case "<":
+      res = a.num < b.num ? 1 : 0;
+      break;
+    case "<=":
+      res = a.num <= b.num ? 1 : 0;
+      break;
+  }
+  lval_del(v);
+  return lval_number(res);
+}
+function buildin_gt(env: lenv, v: lval) {
+  return buildin_compare(env, v, ">");
+}
+function buildin_gte(env: lenv, v: lval) {
+  return buildin_compare(env, v, ">=");
+}
+function buildin_lt(env: lenv, v: lval) {
+  return buildin_compare(env, v, "<");
+}
+function buildin_lte(env: lenv, v: lval) {
+  return buildin_compare(env, v, "<=");
+}
 function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);
   const funcVal = lval_func(func);
@@ -536,6 +573,10 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "def", buildin_def);
   buildin_env(env, "=", buildin_put);
   buildin_env(env, "\\", buildin_lambda);
+  buildin_env(env, ">", buildin_gt);
+  buildin_env(env, ">=", buildin_gte);
+  buildin_env(env, "<", buildin_lt);
+  buildin_env(env, "<=", buildin_lte);
 }
 
 function main() {
