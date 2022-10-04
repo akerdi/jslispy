@@ -277,12 +277,39 @@ function lval_call(env: lenv, v: lval, op: lval) {
       return lval_err("Function '%s' passed invalid count of arguments to variable. Expect %d, Got %d", ["call", total, count]);
     }
     let key = lval_pop(op.formal, 0);
+    if (key.sym === "&") {
+      if (op.formal.cells.length != 1) {
+        lval_del(v);
+        lval_del(key);
+        return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
+      }
+      lval_del(key);
+      key = lval_pop(op.formal, 0);
+      const list = buildin_list(env, v);
+      lenv_put(op.env, key, list);
+      lval_del(key);
+      break;
+    }
     const value = lval_pop(v, 0);
     lenv_put(op.env, key, value);
     lval_del(key);
     lval_del(value);
   }
   lval_del(v);
+
+  if (op.formal.cells.length && op.formal.cells[0].sym === "&") {
+    if (op.formal.cells.length != 2) {
+      lval_del(v);
+      lval_del(key);
+      return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
+    }
+    lval_del(lval_pop(op.formal, 0));
+    const key = lval_pop(op.formal, 0);
+    const empty_list = lval_qexpr();
+    lenv_put(op.env, key, empty_list);
+    lval_del(key);
+    lval_del(empty_list);
+  }
 
   if (!op.formal.cells.length) {
     op.env.paren = env;

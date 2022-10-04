@@ -249,3 +249,62 @@ function lval_call(env: lenv, v: lval, op: lval) {
 执行`npm run dev:lesson4.2` 验证是否正确执行。
 
 ## 4.3. 形参 "&"表达式
+
+想象我们要表达剩余参数，使用内建辅助方法的话，`def {join_left} (\ { x y & z } { eval (join { + x y } z) } )` &和 z 就可以组合起来表达输入的更多参数。如
+
+`> join_left 10 20 30 40 50 60` ->
+
+`> \ { 10 20 {30 40 50 60} } { eval (join { + x y } z) } )` ->
+
+`> eval (join { + x[10] y[20] } z[30 40 50 60])` ->
+
+`> eval {+ x[10] y[20] 30 40 50 60 }` ->
+
+`> 210`
+
+这比开发者将`z`参数直接改为 Q 容器好用多了(`> join_left 10 20 {30 40 50 60}`).
+
+```ts
+function lval_call(env: lenv, v: lval, op: lval) {
+  ...
+  while (v.cells.length) {
+    ...
+    let key = lval_pop(op.formal, 0);
+    // '&' 后面必须紧接着一个symbol!
++   if (key.sym === "&") {
++     if (op.formal.cells.length != 1) {
++       lval_del(v);
++       lval_del(key);
++       return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
++     }
+      // '&' 实际是没有意义的，要的后面的symbol写入到环境上下文中
++     lval_del(key);
++     key = lval_pop(op.formal, 0);
++     const list = buildin_list(env, v);
++     lenv_put(op.env, key, list);
++     lval_del(key);
++     break;
++   }
+    ...
+  }
+  lval_del(v);
+  // 如果参数剩余`& x`则直接为x赋值为空的Q容器
+  if (op.formal.cells.length && op.formal.cells[0].sym === "&") {
++   if (op.formal.cells.length != 2) {
++     lval_del(v);
++     lval_del(key);
++     return lval_err("Function '%s' passed '&' must followed by one symbol!", ["call"]);
++   }
++   lval_del(lval_pop(op.formal, 0));
++   const key = lval_pop(op.formal, 0);
++   const empty_list = lval_qexpr();
++   lenv_put(op.env, key, empty_list);
++   lval_del(key);
++   lval_del(empty_list);
++ }
+}
+```
+
+正如代码块中描述，'&'后面必须跟着一个 symbol 作为形参，用来在环境上下文中保存 Q 容器数据。
+
+执行 `npm run dev:lesson4.3`，并且执行上面的开发者运行示例。
