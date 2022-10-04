@@ -17,7 +17,7 @@
 
 ## [4. Lambda 表达式](./lesson4.md)
 
-## 5. Order/Compare/If
+## [5. Order/Compare/If](./lesson5.md)
 
 ## 6. String/Load file
 
