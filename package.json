@@ -17,6 +17,7 @@
     "dev:lesson4.3": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'ts-node --files -r tsconfig-paths/register' tech/lesson4.3.ts",
     "dev:lesson5.1": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'ts-node --files -r tsconfig-paths/register' tech/lesson5.1.ts",
     "dev:lesson5.2": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'ts-node --files -r tsconfig-paths/register' tech/lesson5.2.ts",
+    "dev:lesson5.3": "nodemon --watch '**/*.ts' --ignore '**/*.test.*' --exec 'ts-node --files -r tsconfig-paths/register' tech/lesson5.3.ts",
     "dev:win": "cross-env nodemon --watch '**/*.ts' --ignore '**/*.test.ts' --exec 'ts-node --files -r tsconfig-paths/register' main.ts",
     "start": "node main.js"
   },

@@ -12,6 +12,9 @@ function buildin_envs(env: lenv) {
 + buildin_env(env, ">=", buildin_gte);
 + buildin_env(env, "<", buildin_lt);
 + buildin_env(env, "<=", buildin_lte);
++ buildin_env(env, "==", buildin_eq);
++ buildin_env(env, "!=", buildin_neq);
++ buildin_env(env, "if", buildin_if);
 }
 // 实现对应的4个函数
 +function buildin_order(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
@@ -59,12 +62,6 @@ function buildin_envs(env: lenv) {
 Compare 实现的是 `==` / `!=`方法，比较函数需要根据类型、数量、值等都需要一一对应:
 
 ```ts
-// 首先注册内建方法
-function buildin_envs(env: lenv) {
-  ...
-+ buildin_env(env, "==", buildin_eq);
-+ buildin_env(env, "!=", buildin_neq);
-}
 +function buildin_compare(env: lenv, v: lval, sym: "==" | "!=") {
 + lassert_num(sym, v, 2);
 + const a = v.cells[0];
@@ -135,4 +132,36 @@ function buildin_envs(env: lenv) {
     > != \ \
     0
 
-## 5.1. If
+## 5.3. If
+
+```ts
+function buildin_if(env: lenv, v: lval) {
+  lassert_num("if", v, 3);
+  lassert_type("if", v, 0, LVAL.NUM);
+  lassert_type("if", v, 1, LVAL.QEXPR);
+  lassert_type("if", v, 2, LVAL.QEXPR);
+
+  const a = v.cells[1];
+  a.type = LVAL.SEXPR;
+  const b = v.cells[2];
+  b.type = LVAL.SEXPR;
+
+  let x: lval = null;
+  if (v.cells[0].num === 1) {
+    x = lval_eval(env, lval_pop(v, 1));
+  } else {
+    x = lval_eval(env, lval_pop(v, 2));
+  }
+  lval_del(v);
+  return x;
+}
+```
+
+内建函数`if` 参数是数字和要执行的 Q 容器 1、Q 容器 2。
+
+lassert 判断完成后，使用 lval_eval 执行对应的 Q 容器转化后的 S 容器对象。
+
+运行`npm run dev:lesson5.3`, 执行:
+
+    > if (== 1 2) { + 3 2 } { - 3 2 }
+    1

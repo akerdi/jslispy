@@ -19,6 +19,6 @@
 
 ## [5. Order/Compare/If](./lesson5.md)
 
-## 6. String/Load file
+## [6. String/Load file](./lesson6.md)
 
-## 7. Library
+## [7. Library](./lesson7.md)
