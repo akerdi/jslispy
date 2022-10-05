@@ -515,7 +515,7 @@ function buildin_lambda(env: lenv, v: lval) {
   lval_del(v);
   return lambdaVal;
 }
-function buildin_compare(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
+function buildin_order(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
   lassert_num(sym, v, 2);
   lassert_type(sym, v, 0, LVAL.NUM);
   lassert_type(sym, v, 1, LVAL.NUM);
@@ -541,16 +541,16 @@ function buildin_compare(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
   return lval_number(res);
 }
 function buildin_gt(env: lenv, v: lval) {
-  return buildin_compare(env, v, ">");
+  return buildin_order(env, v, ">");
 }
 function buildin_gte(env: lenv, v: lval) {
-  return buildin_compare(env, v, ">=");
+  return buildin_order(env, v, ">=");
 }
 function buildin_lt(env: lenv, v: lval) {
-  return buildin_compare(env, v, "<");
+  return buildin_order(env, v, "<");
 }
 function buildin_lte(env: lenv, v: lval) {
-  return buildin_compare(env, v, "<=");
+  return buildin_order(env, v, "<=");
 }
 function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);

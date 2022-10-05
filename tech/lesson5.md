@@ -14,7 +14,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "<=", buildin_lte);
 }
 // 实现对应的4个函数
-function buildin_compare(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
+function buildin_order(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
   lassert_num(sym, v, 2);
   lassert_type(sym, v, 0, LVAL.NUM);
   lassert_type(sym, v, 1, LVAL.NUM);
@@ -40,16 +40,16 @@ function buildin_compare(env: lenv, v: lval, sym: ">" | ">=" | "<" | "<=") {
   return lval_number(res);
 }
 function buildin_gt(env: lenv, v: lval) {
-  return buildin_compare(env, v, ">");
+  return buildin_order(env, v, ">");
 }
 function buildin_gte(env: lenv, v: lval) {
-  return buildin_compare(env, v, ">=");
+  return buildin_order(env, v, ">=");
 }
 function buildin_lt(env: lenv, v: lval) {
-  return buildin_compare(env, v, "<");
+  return buildin_order(env, v, "<");
 }
 function buildin_lte(env: lenv, v: lval) {
-  return buildin_compare(env, v, "<=");
+  return buildin_order(env, v, "<=");
 }
 ```
 
