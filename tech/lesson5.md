@@ -56,3 +56,9 @@ function buildin_lte(env: lenv, v: lval) {
 运行`npm run dev:lesson5.1`, 输入如`> 3 2` / `> 3 4`.
 
 ## 5.2. Compare
+
+Compare 实现的是 `==` / `!=`方法，比较函数需要根据类型、数量、值等都需要一一对应:
+
+```ts
+
+```
