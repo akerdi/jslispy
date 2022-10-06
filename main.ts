@@ -54,7 +54,7 @@ function lenv_get(env: lenv, key: lval) {
   }
   return lval_err("Unbound Symbol: %s", [key.sym]);
 }
-function lenv_def(env: lenv, key: lval, val: lval) {
+function lenv_put(env: lenv, key: lval, val: lval) {
   for (let i = 0; i < env.syms.length; i++) {
     // 存在即更新
     if (env.syms[i] === key.sym) {
@@ -66,11 +66,11 @@ function lenv_def(env: lenv, key: lval, val: lval) {
   env.syms.push(key.sym);
   env.vals.push(lval_copy(val));
 }
-function lenv_put(env: lenv, key: lval, val: lval) {
+function lenv_def(env: lenv, key: lval, val: lval) {
   while (env.paren) {
     env = env.paren;
   }
-  lenv_def(env, key, val);
+  lenv_put(env, key, val);
 }
 function lenv_copy(env: lenv) {
   const x = newLenv();
@@ -381,15 +381,25 @@ function buildin_eval(env: lenv, v: lval) {
   x.type = LVAL.SEXPR;
   return lval_eval(env, x);
 }
-function buildin_def(env: lenv, v: lval) {
-  lassert_type("def", v, 0, LVAL.QEXPR);
-  const node = v.cells[0];
-  lassert(v, node.cells.length === v.cells.length - 1, "Function '%s' passed count of arguments not equal to count of values. Argument: %d, Values: %d", "def", node.cells.length, v.cells.length - 1);
-  for (let i = 0; i < node.cells.length; i++) {
-    lenv_put(env, node.cells[i], v.cells[i + 1]);
+function buildin_var(env: lenv, v: lval, sym: string) {
+  lassert_type(sym, v, 0, LVAL.QEXPR);
+  const args = v.cells[0];
+  lassert(v, args.cells.length == v.cells.length - 1, "Function '%s' passed count of args not equal to count of vals. Args: %d, Vals: %d", sym, args.cells.length, v.cells.length - 1);
+  for (let i = 0; i < args.cells.length; i++) {
+    lassert_type(sym, args, i, LVAL.SYM);
+  }
+  for (let i = 0; i < args.cells.length; i++) {
+    if (sym === "def") lenv_def(env, args.cells[i], v.cells[i + 1]);
+    else lenv_put(env, args.cells[i], v.cells[i + 1]);
   }
   lval_del(v);
   return lval_sexpr();
+}
+function buildin_put(env: lenv, v: lval) {
+  return buildin_var(env, v, "put");
+}
+function buildin_def(env: lenv, v: lval) {
+  return buildin_var(env, v, "def");
 }
 function buildin_lambda(env: lenv, v: lval) {
   lassert_num("\\", v, 2);
@@ -524,27 +534,26 @@ function buildin_print(env: lenv, v: lval) {
   return lval_sexpr();
 }
 function buildin_load(env: lenv, v: lval) {
-  lassert_num("load", v, 1);
-  lassert_type("load", v, 0, LVAL.STR);
-
-  try {
-    let program: INode = compiler.loadfile(v.cells[0].str);
-    const sexpr = lval_read(program);
-    while (sexpr.cells.length) {
-      const a = lval_pop(sexpr, 0);
-      const res = lval_eval(env, a);
-      if (res.type == LVAL.ERR) {
-        program = null;
-        lval_del(sexpr);
-        return res;
-      }
-    }
-    program = null;
-    lval_del(sexpr);
-    return lval_sexpr();
-  } catch (error) {
-    return lval_err(error);
+  for (let i = 0; i < v.cells.length; i++) {
+    lassert_type("load", v, i, LVAL.STR);
   }
+  for (let i = 0; i < v.cells.length; i++) {
+    try {
+      let program = compiler.loadfile(v.cells[i].str);
+      const sexpr = lval_read(program);
+      while (sexpr.cells.length) {
+        const res = lval_eval(env, lval_pop(sexpr, 0));
+        if (res.type === LVAL.ERR) lval_println(res);
+        lval_del(res);
+      }
+      program = null;
+    } catch (error) {
+      lval_del(v);
+      return lval_err(error);
+    }
+  }
+  lval_del(v);
+  return lval_sexpr();
 }
 
 function lval_expr_eval(env: lenv, v: lval) {
@@ -678,6 +687,7 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "*", buildin_mul);
   buildin_env(env, "/", buildin_div);
   buildin_env(env, "def", buildin_def);
+  buildin_env(env, "=", buildin_put);
   buildin_env(env, "\\", buildin_lambda);
   buildin_env(env, ">", buildin_gt);
   buildin_env(env, ">=", buildin_gte);

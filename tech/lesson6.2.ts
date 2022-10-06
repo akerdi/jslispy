@@ -550,7 +550,7 @@ function buildin_var(env: lenv, v: lval, sym: string) {
   return lval_sexpr();
 }
 function buildin_put(env: lenv, v: lval) {
-  return buildin_var(env, v, "var");
+  return buildin_var(env, v, "put");
 }
 function buildin_def(env: lenv, v: lval) {
   return buildin_var(env, v, "def");
