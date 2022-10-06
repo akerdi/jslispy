@@ -644,6 +644,35 @@ function buildin_if(env: lenv, v: lval) {
   lval_del(v);
   return x;
 }
+function buildin_print(env: lenv, v: lval) {
+  for (let i = 0; i < v.cells.length; i++) {
+    lval_println(v.cells[i]);
+  }
+  lval_del(v);
+  return lval_sexpr();
+}
+function buildin_load(env: lenv, v: lval) {
+  for (let i = 0; i < v.cells.length; i++) {
+    lassert_type("load", v, i, LVAL.STR);
+  }
+  for (let i = 0; i < v.cells.length; i++) {
+    try {
+      let program = compiler.loadfile(v.cells[i].str);
+      const sexpr = lval_read(program);
+      while (sexpr.cells.length) {
+        const res = lval_eval(env, lval_pop(sexpr, 0));
+        if (res.type === LVAL.ERR) lval_println(res);
+        lval_del(res);
+      }
+      program = null;
+    } catch (error) {
+      lval_del(v);
+      return lval_err(error);
+    }
+  }
+  lval_del(v);
+  return lval_sexpr();
+}
 function buildin_env(env: lenv, sym: string, func: lbuildinFunc) {
   const symVal = lval_sym(sym);
   const funcVal = lval_func(func);
@@ -672,6 +701,8 @@ function buildin_envs(env: lenv) {
   buildin_env(env, "==", buildin_eq);
   buildin_env(env, "!=", buildin_neq);
   buildin_env(env, "if", buildin_if);
+  buildin_env(env, "print", buildin_print);
+  buildin_env(env, "load", buildin_load);
 }
 
 function main() {

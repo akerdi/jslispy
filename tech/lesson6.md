@@ -74,4 +74,46 @@ function lval_expr_read(ast: INode) {
 
 ## 6.2. Load library
 
-首先注册`load`
+注册`print`打印函数和`load`加载脚本函数:
+
+```ts
+function buildin_envs(env: lenv) {
++ buildin_env(env, "print", buildin_print);
++ buildin_env(env, "load", buildin_load);
+}
++function buildin_print(env: lenv, v: lval) {
++ for (let i = 0; i < v.cells.length; i++) {
++   lval_println(v.cells[i]);
++ }
++ lval_del(v);
++ return lval_sexpr();
++}
+```
+
+`load`后面接受多个 LVAL.STR 的值，一一加载脚本:
+
+```ts
+function buildin_load(env: lenv, v: lval) {
+  for (let i = 0; i < v.cells.length; i++) {
+    lassert_type("load", v, i, LVAL.STR);
+  }
+  for (let i = 0; i < v.cells.length; i++) {
+    // 失败时catch返回lval_err错误原因
+    try {
+      let program = compiler.loadfile(v.cells[i].str);
+      const sexpr = lval_read(program);
+      while (sexpr.cells.length) {
+        const res = lval_eval(env, lval_pop(sexpr, 0));
+        if (res.type === LVAL.ERR) lval_println(res);
+        lval_del(res);
+      }
+      program = null;
+    } catch (error) {
+      lval_del(v);
+      return lval_err(error);
+    }
+  }
+  lval_del(v);
+  return lval_sexpr();
+}
+```
