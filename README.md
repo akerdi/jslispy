@@ -1,6 +1,6 @@
 # jslispy
 
-使用 Typescript 编译 lisp 语法，并支持运行时环境。
+使用 javascript 制作语言`lisp`.
 
 ## 语言
 
@@ -8,9 +8,15 @@ Typescript
 
 ## 运行
 
-`npm i` 先安装开发必要的库
+    $ git clone git@github.com:akerdi/jslispy.git
+    $ git submodule update --init
+    $ npm install
+    $ npm run dev # windows 执行 npm run dev:win
 
-    cp .vscode/launch.example.json .vscode/launch.json // 然后按键盘 F5
+`npm i` 先安装开发必要的库。如果需要方便的断点调试，执行下列操作
+
+    cp .vscode/launch.example.json .vscode/launch.json
+    // 然后按键盘 F5
 
 > windows 用户修改文件(.vscode/launch.json) - runtimeArgs 内容为["run", "dev:win"]
 
