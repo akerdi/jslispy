@@ -53,7 +53,7 @@ Platform: darwin
 
 ## 教程
 
-[compiler 教程](./compiler/tech/README.md)
+[compiler 教程](https://github.com/akerdi/compiler)
 
 [jslispy 教程](./tech/README.md)
 
