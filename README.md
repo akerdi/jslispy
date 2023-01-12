@@ -1,6 +1,6 @@
 # jslispy
 
-使用 javascript 制作语言`lisp`.
+使用 Javascript 实现语言`lisp`，你会学到一门语言制作过程，简单而蕴含丰富知识！
 
 ## 语言
 
