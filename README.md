@@ -59,9 +59,20 @@ Platform: darwin
 
 ## 教程
 
-[compiler 教程](https://github.com/akerdi/compiler)
++ [Compiler 教程](https://github.com/akerdi/compiler)
+    - [词法分析&AST](./compiler/tech/README.md#词法分析ast)
+    - [词法分析 - tokenizer](./compiler/tech/README.md#词法分析---tokenizer)
+    - [虚拟树生成 - aster](./compiler/tech/README.md#虚拟树生成---aster)
+    - [Compiler](./compiler/tech/README.md#compiler)
 
-[jslispy 教程](./tech/README.md)
++ [JSLispy 教程](./tech/README.md)
+    - [最简易的计算器功能](./tech/lesson1.md)
+    - [QEXPR 和内置方法](./tech/lesson2.md)
+    - [ENV 环境上下文](./tech/lesson3.md)
+    - [Lambda 表达式](./tech/lesson4.md)
+    - [Order/Compare/If](./tech/lesson5.md)
+    - [String/Load library](./tech/lesson6.md)
+    - [Library](./tech/lesson7.md)
 
 ## 相关
 
